@@ -8,7 +8,7 @@ on:
 
 jobs:
   analyse:
-    uses: AbhishekSnap/commit-analyser-mcp/.github/workflows/main.yml@main
+    uses: AbhishekSnap/GIT_CR_MCP/.github/workflows/main.yml@main
     # Required: grant write access so the called workflow can update the Wiki.
     # A reusable workflow cannot elevate permissions beyond what the caller grants.
     permissions:
