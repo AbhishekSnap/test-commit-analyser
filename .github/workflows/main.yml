@@ -1,28 +1,3 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Commit Analyser — Consumer Workflow
-# ─────────────────────────────────────────────────────────────────────────────
-# Copy this file into your repository at:
-#   .github/workflows/commit-analyser.yml
-#
-# Then replace YOUR_ORG below with the GitHub organisation (or username) where
-# the commit-analyser-mcp repository lives.
-#
-# Prerequisites (one-time setup per repo):
-#   1. Enable the GitHub Wiki on your repository
-#      (Settings > Features > Wikis — tick the checkbox)
-#      Then create the first wiki page manually so the wiki git repo is
-#      initialised. The analyser will handle all future updates automatically.
-#
-#   2. Add ANTHROPIC_API_KEY as a repository secret
-#      (Settings > Secrets and variables > Actions > New repository secret)
-#
-#   3. Allow Actions to write to the repository
-#      (Settings > Actions > General > Workflow permissions > Read and write)
-#
-#   4. Push a commit and check your Wiki — a new entry will appear within
-#      about 30 seconds.
-# ─────────────────────────────────────────────────────────────────────────────
-
 name: Analyse Commits
 
 on:
@@ -33,6 +8,10 @@ on:
 
 jobs:
   analyse:
-    uses: AbhishekSnap/Git_CR_MCP/.github/workflows/main.yml@main
+    uses: AbhishekSnap/commit-analyser-mcp/.github/workflows/main.yml@main
+    # Required: grant write access so the called workflow can update the Wiki.
+    # A reusable workflow cannot elevate permissions beyond what the caller grants.
+    permissions:
+      contents: write
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
