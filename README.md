@@ -1,6 +1,6 @@
 # test-commit-analyser
 ## Hi, This is GitHub Commit Analysis Tool. 
-### Author: Abhishek Kumar
+### Author: Abhishek Kumar and Calvin Fuss
 ### Date: 12 April 2026
 ### Role: AI Consultant
 ### Organisation: Snap Analytics, United Kingdom
