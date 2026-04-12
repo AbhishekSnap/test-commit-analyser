@@ -33,6 +33,6 @@ on:
 
 jobs:
   analyse:
-    uses: AbhishekSnap/commit-analyser-mcp/.github/workflows/main.yml@main
+    uses: AbhishekSnap/Git_CR_MCP/.github/workflows/main.yml@main
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
