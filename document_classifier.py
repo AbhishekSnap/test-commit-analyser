@@ -39,9 +39,9 @@ KEYWORD_WEIGHTS: dict[DocumentType, list[tuple[str, float]]] = {
         ("invoice", 1.0),
         ("inv no", 0.9),
         ("invoice number", 1.0),
-        ("amount due", 0.8),
+        ("amount due", 0.9),
         ("payment terms", 0.7),
-        ("vat", 0.6),
+        ("vat", 0.7),
         ("bill to", 0.7),
     ],
     DocumentType.CONTRACT: [
@@ -76,19 +76,12 @@ KEYWORD_WEIGHTS: dict[DocumentType, list[tuple[str, float]]] = {
         ("credit memo", 1.0),
         ("amount credited", 0.9),
         ("original invoice", 0.8),
-    ],
-    DocumentType.DELIVERY_NOTE: [
-        ("delivery note", 1.0),
-        ("dn no", 0.9),
-        ("delivered to", 0.8),
-        ("despatch", 0.7),
-        ("goods received", 0.8),
-        ("consignment", 0.7),
-    ],
+    ]
+
 }
 
 # Minimum confidence to accept a classification (below this → UNKNOWN)
-CONFIDENCE_THRESHOLD = 0.35
+CONFIDENCE_THRESHOLD = 0.50
 
 
 def _score_text(text: str) -> dict[DocumentType, tuple[float, list[str]]]:
