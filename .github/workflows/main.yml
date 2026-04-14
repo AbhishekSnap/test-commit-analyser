@@ -5,9 +5,12 @@ on:
     branches:
       - "**"      # Run on every push to any branch.
                   # To limit to specific branches, use e.g.: ["main", "develop"]
+  pull_request:
+    types: [opened, closed, reopened]
 
 jobs:
-  analyse:
+  analyse-commit:
+    if: github.event_name == 'push'
     uses: AbhishekSnap/GIT_CR_MCP/.github/workflows/main.yml@main
     # Required: grant write access so the called workflow can update the Wiki.
     # A reusable workflow cannot elevate permissions beyond what the caller grants.
@@ -15,3 +18,18 @@ jobs:
       contents: write
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  analyse-pr:
+    if: github.event_name == 'pull_request'
+    uses: AbhishekSnap/GIT_CR_MCP/.github/workflows/main.yml@main
+    permissions:
+      contents: write
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    with:
+      pr_number:      "${{ github.event.pull_request.number }}"
+      pr_action:      "${{ github.event.action }}"
+      pr_title:       "${{ github.event.pull_request.title }}"
+      pr_author:      "${{ github.event.pull_request.user.login }}"
+      pr_base_branch: "${{ github.event.pull_request.base.ref }}"
+      pr_head_branch: "${{ github.event.pull_request.head.ref }}"
