@@ -707,11 +707,11 @@ async function analyzeCommit(sha) {
   const files  = (detail.files||[]).slice(0,20);
   const diff   = files.map(f=>(f.patch||'').slice(0,300)).join('\n').slice(0,3000);
   const msg = `Commit SHA: ${sha.slice(0,7)}\nMessage: ${detail.commit.message}\nAuthor: ${detail.commit.author.name}\nDate: ${detail.commit.author.date}\nFiles changed: ${files.length}\n${files.map(f=>`${f.filename}: +${f.additions} -${f.deletions}`).join('\n')}\n\nDiff (first 3000 chars):\n${diff}`;
-  const sys = `You are a senior software engineer reviewing a git commit.\nAnalyse the provided commit data and return a JSON object with exactly these six keys:\n  "plain_summary": 2-3 sentence plain-English description of what changed (non-technical, suitable for a project manager)\n  "technical_summary": detailed per-file technical breakdown. For EACH file changed, produce a section: "**filename.py**\\n- FunctionOrClass: what specifically changed". Reference exact function names, class names, decorators, and constants.\n  "change_type": exactly one of: Bug Fix | Feature | Refactor | Chore | Docs | Tests | Performance | Security\n  "quality": one-line starting with "Good" or "Needs improvement", em-dash, short reason\n  "risk_level": one of: Low | Medium | High — em-dash and one-line reason\n  "suggested_message": return original if clear and follows conventional commits; otherwise return improved type(scope): description\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
+  const sys = `You are a senior software engineer reviewing a git commit.\nAnalyse the provided commit data and return a JSON object with exactly these six keys:\n  "plain_summary": 2-3 sentence plain-English description of what changed (non-technical, suitable for a project manager)\n  "technical_summary": detailed per-file technical breakdown for a code reviewer who has the diff open. For EACH file changed, produce a section using this exact structure: "**filename.py**\\n- FunctionOrClass: what specifically changed — new parameters, altered logic, removed behaviour, etc.\\n- ..." Reference exact function names, class names, decorators, and constants. A reviewer should be able to open each file and navigate it using your description. Do not summarise vaguely — be precise about what each function does differently after this commit.\n  "change_type": exactly one of: Bug Fix | Feature | Refactor | Chore | Docs | Tests | Performance | Security\n  "quality": one-line starting with "Good" or "Needs improvement", em-dash, short reason\n  "risk_level": one of: Low | Medium | High — em-dash and one-line reason\n  "suggested_message": return original if clear and follows conventional commits; otherwise return improved type(scope): description\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
   const res = await fetch(CLAUDE, {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body: JSON.stringify({model:MODEL,max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
+    body: JSON.stringify({model:MODEL,max_tokens:1500,system:sys,messages:[{role:'user',content:msg}]})
   });
   if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.error?.message||'Claude API error'); }
   const data = await res.json();
@@ -733,7 +733,7 @@ async function analyzePR(num, pr) {
   const res = await fetch(CLAUDE, {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body: JSON.stringify({model:MODEL,max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
+    body: JSON.stringify({model:MODEL,max_tokens:1500,system:sys,messages:[{role:'user',content:msg}]})
   });
   if (!res.ok) throw new Error('Claude API error');
   const data = await res.json();
