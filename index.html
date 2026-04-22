@@ -691,13 +691,15 @@ let searchQ = '', commitFilter = 'All', prFilter = 'All';
 let lastFetchedAt = null;
 let contribSort = { key: 'commits', dir: -1 };
 
-const commitAnalysisCache = new Map();
-const prAnalysisCache     = new Map();
-const commitDetailCache   = new Map();
-const prFilesCache        = new Map();
-const prReviewsCache      = new Map();
-const expandedCommits     = new Set();
-const expandedPRs         = new Set();
+const commitAnalysisCache    = new Map();
+const prAnalysisCache        = new Map();
+const commitDetailCache      = new Map();
+const prFilesCache           = new Map();
+const prReviewsCache         = new Map();
+const prCommentsCache        = new Map();
+const prReviewCommentsCache  = new Map();
+const expandedCommits        = new Set();
+const expandedPRs            = new Set();
 
 let settings = { autoAnalyze: true, securityScan: true, showSuggested: true };
 
@@ -864,6 +866,7 @@ function selectRepo(repo) {
   // Clear all caches for fresh data
   commitAnalysisCache.clear(); prAnalysisCache.clear();
   commitDetailCache.clear(); prFilesCache.clear(); prReviewsCache.clear();
+  prCommentsCache.clear(); prReviewCommentsCache.clear();
   expandedCommits.clear(); expandedPRs.clear();
   commits = []; prs = [];
   // Update sidebar links
@@ -918,6 +921,18 @@ async function fetchPRReviews(n) {
   if (prReviewsCache.has(n)) return prReviewsCache.get(n);
   const d = await ghFetch(`${API}/pulls/${n}/reviews`);
   prReviewsCache.set(n, d);
+  return d;
+}
+async function fetchPRComments(n) {
+  if (prCommentsCache.has(n)) return prCommentsCache.get(n);
+  const d = await ghFetch(`${API}/issues/${n}/comments`);
+  prCommentsCache.set(n, d);
+  return d;
+}
+async function fetchPRReviewComments(n) {
+  if (prReviewCommentsCache.has(n)) return prReviewCommentsCache.get(n);
+  const d = await ghFetch(`${API}/pulls/${n}/comments`);
+  prReviewCommentsCache.set(n, d);
   return d;
 }
 
@@ -1154,6 +1169,8 @@ function expandedPRHtml(p) {
   const cached = prAnalysisCache.get(num);
   const files  = prFilesCache.get(num)||[];
   const reviews= prReviewsCache.get(num)||[];
+  const comments      = prCommentsCache.get(num)||[];
+  const reviewComments= prReviewCommentsCache.get(num)||[];
   if (!cached && expandedPRs.has(num)) {
     return `<div class="pr-body"><div class="ag">
       <div class="skeleton" style="height:90px"></div>
@@ -1185,8 +1202,24 @@ function expandedPRHtml(p) {
         ${moreFiles?`<div style="font-size:11px;color:var(--text3);padding:6px 0">+${files.length-8} more files</div>`:''}
       </div>
     </div>`:''}
+    ${(comments.length||reviewComments.length)?`<div style="margin-top:16px">
+      <div class="albl" style="margin-bottom:10px">Comments (${comments.length + reviewComments.length})</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${[...comments.map(c=>({...c,_type:'comment'})),...reviewComments.map(c=>({...c,_type:'review'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).map(c=>`
+        <div style="background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="av" style="background:${avatarColor(c.user.login)};width:20px;height:20px;font-size:9px">${avatarInitial(c.user.login)}</div>
+            <span style="font-size:12px;font-weight:600;color:var(--text)">${esc(c.user.login)}</span>
+            ${c._type==='review'?`<span style="font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:4px;background:var(--teal-dim);color:var(--teal)">inline</span>`:''}
+            ${c.path?`<span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${esc(c.path)}</span>`:''}
+            <span style="font-size:11px;color:var(--text3);margin-left:auto">${timeAgo(c.created_at)}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${esc((c.body||'').slice(0,500))}${(c.body||'').length>500?'…':''}</div>
+        </div>`).join('')}
+      </div>
+    </div>`:''}
     <div class="act-row">
-      <a class="abtn" href="https://github.com/AbhishekSnap/test-commit-analyser/pull/${num}" target="_blank">
+      <a class="abtn" href="https://github.com/${currentRepo?.full_name||''}/pull/${num}" target="_blank">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>View PR on GitHub
       </a>
       <button class="abtn" onclick="copyPRLink(${num})">
@@ -1205,7 +1238,7 @@ async function togglePR(num) {
     renderPRList();
     if (!prAnalysisCache.has(num)) {
       try {
-        await Promise.all([fetchPRFiles(num), fetchPRReviews(num)]);
+        await Promise.all([fetchPRFiles(num), fetchPRReviews(num), fetchPRComments(num), fetchPRReviewComments(num)]);
         renderPRList();
         await analyzePR(num, pr);
         renderPRList();
@@ -1536,7 +1569,8 @@ function updateCacheStats() {
 
 function clearCache() {
   commitAnalysisCache.clear(); prAnalysisCache.clear(); commitDetailCache.clear();
-  prFilesCache.clear(); prReviewsCache.clear(); expandedCommits.clear(); expandedPRs.clear();
+  prFilesCache.clear(); prReviewsCache.clear(); prCommentsCache.clear(); prReviewCommentsCache.clear();
+  expandedCommits.clear(); expandedPRs.clear();
   updateCacheStats();
   renderCommitList(); renderRightPanels();
   toast('🗑️','Cache cleared','All analysis data removed');
