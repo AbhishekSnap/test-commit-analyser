@@ -664,11 +664,11 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
     <!-- Filters -->
     <div class="ins-filters">
       <div class="ins-filters-left">
-        <button class="ftab active" onclick="setInsRange(7,this)">7d</button>
+        <button class="ftab" onclick="setInsRange(7,this)">7d</button>
         <button class="ftab" onclick="setInsRange(14,this)">14d</button>
         <button class="ftab" onclick="setInsRange(30,this)">30d</button>
         <button class="ftab" onclick="setInsRange(60,this)">60d</button>
-        <button class="ftab" onclick="setInsRange(0,this)">All time</button>
+        <button class="ftab active" onclick="setInsRange(0,this)">All time</button>
       </div>
       <div class="ins-filters-right">
         <select class="ins-author-sel" id="ins-author" onchange="renderInsights()">
@@ -714,18 +714,7 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
         </div>
         <div style="overflow-x:auto">
           <table class="ca-table" id="ca-table">
-            <thead><tr>
-              <th onclick="sortContribs('name')">Author</th>
-              <th class="ca-num" onclick="sortContribs('commits')">Total</th>
-              <th class="ca-num" onclick="sortContribs('w7')">7d</th>
-              <th class="ca-num" onclick="sortContribs('w14')">14d</th>
-              <th class="ca-num" onclick="sortContribs('w30')">30d</th>
-              <th class="ca-num" onclick="sortContribs('w60')">60d</th>
-              <th class="ca-num" onclick="sortContribs('additions')">+Lines</th>
-              <th class="ca-num" onclick="sortContribs('deletions')">−Lines</th>
-              <th onclick="sortContribs('recent')">Last commit</th>
-              <th>Trend (8w)</th>
-            </tr></thead>
+            <thead id="contrib-thead"><tr></tr></thead>
             <tbody id="contrib-tbody"></tbody>
           </table>
         </div>
@@ -1095,12 +1084,16 @@ function selectRepo(repo) {
   prCommentsCache.clear(); prReviewCommentsCache.clear();
   expandedCommits.clear(); expandedPRs.clear();
   commits = []; prs = [];
+  insDays = 0;
+  // Reset insights filter UI to "All time"
+  document.querySelectorAll('#view-insights .ftab').forEach((t,i,arr)=>t.classList.toggle('active',i===arr.length-1));
   // Update sidebar links
   const ghUrl = `https://github.com/${repo.full_name}`;
   document.getElementById('sidebar-repo-link').href = ghUrl;
   document.getElementById('sidebar-repo-footer').href = ghUrl;
   document.getElementById('sidebar-repo-footer').textContent = repo.full_name;
   document.getElementById('settings-repo-name').textContent = `${repo.full_name} — ${repo.private?'Private':'Public'}`;
+  switchView('commits');
   showScreen('dashboard');
   init();
 }
@@ -1631,7 +1624,7 @@ function renderTopContribs() {
 
 // ── INSIGHTS ─────────────────────────────────────────────────────────────────
 // ── INSIGHTS STATE ────────────────────────────────────────────────────────────
-let insDays = 30;
+let insDays = 0;
 function setInsRange(d, el) {
   insDays = d;
   document.querySelectorAll('#view-insights .ftab').forEach(t=>t.classList.remove('active'));
@@ -1895,23 +1888,34 @@ function renderPRMergeTrend() {
 }
 
 function renderContribTable() {
-  const tbody = document.getElementById('contrib-tbody');
-  const badge = document.getElementById('contrib-badge');
+  const tbody  = document.getElementById('contrib-tbody');
+  const thead  = document.getElementById('contrib-thead');
+  const badge  = document.getElementById('contrib-badge');
   const author = document.getElementById('ins-author')?.value || '';
 
-  function commitsInWindow(name, days) {
-    const cutoff = days ? new Date(Date.now()-days*86400000) : null;
-    return commits.filter(c=>c.commit.author.name===name && (!cutoff||new Date(c.commit.author.date)>=cutoff)).length;
-  }
+  // Period label for the "in period" column
+  const periodLabel = insDays ? `In ${insDays}d` : 'Total';
+
+  // Build header dynamically based on filter
+  thead.innerHTML = `<tr>
+    <th style="width:200px" onclick="sortContribs('name')">Author</th>
+    <th class="ca-num" style="width:70px" onclick="sortContribs('commits')">Total</th>
+    <th class="ca-num" style="width:80px" onclick="sortContribs('period')">${periodLabel}</th>
+    <th class="ca-num" style="width:80px" onclick="sortContribs('additions')">+Lines</th>
+    <th class="ca-num" style="width:80px" onclick="sortContribs('deletions')">−Lines</th>
+    <th style="width:110px" onclick="sortContribs('recent')">Last commit</th>
+    <th style="width:100px">Trend (8w)</th>
+  </tr>`;
 
   const data = {};
   commits.forEach(c=>{
     const a=c.commit.author.name;
     if(author && a!==author) return;
-    if(!data[a]) data[a]={name:a,commits:0,additions:0,deletions:0,recent:c.commit.author.date,prs:0,weeks:new Array(8).fill(0)};
+    if(!data[a]) data[a]={name:a,commits:0,period:0,additions:0,deletions:0,recent:c.commit.author.date,weeks:new Array(8).fill(0)};
     data[a].commits++;
+    const cutoff = insDays ? new Date(Date.now()-insDays*86400000) : null;
+    if(!cutoff || new Date(c.commit.author.date)>=cutoff) data[a].period++;
     if(new Date(c.commit.author.date)>new Date(data[a].recent)) data[a].recent=c.commit.author.date;
-    // weekly spark (last 8 weeks)
     const daysAgo=Math.floor((Date.now()-new Date(c.commit.author.date))/86400000);
     const wk=Math.floor(daysAgo/7);
     if(wk<8) data[a].weeks[wk]++;
@@ -1920,32 +1924,22 @@ function renderContribTable() {
     const a=d.commit?.author?.name;
     if(a&&data[a]){ data[a].additions+=(d.stats?.additions||0); data[a].deletions+=(d.stats?.deletions||0); }
   }
-  prs.forEach(p=>{ const a=p.user?.login; if(a&&data[a]) data[a].prs++; });
 
-  let rows=Object.values(data).map(r=>({
-    ...r,
-    w7:  commitsInWindow(r.name,7),
-    w14: commitsInWindow(r.name,14),
-    w30: commitsInWindow(r.name,30),
-    w60: commitsInWindow(r.name,60),
-  }));
+  let rows=Object.values(data);
   rows.sort((a,b)=>{ const v=contribSort.dir; const av=a[contribSort.key],bv=b[contribSort.key]; return (av>bv?1:-1)*v; });
   if(badge) badge.textContent=`${rows.length} contributor${rows.length!==1?'s':''}`;
 
   tbody.innerHTML=rows.map(r=>{
     const sparkMax=Math.max(1,...r.weeks);
-    const spark=r.weeks.map((n,i)=>`<div class="ca-spark-bar${i===0?' active':''}" style="height:${Math.max(10,Math.round(n/sparkMax*100))}%"></div>`).reverse().join('');
+    const spark=r.weeks.slice().reverse().map((n,i)=>`<div class="ca-spark-bar${i===r.weeks.length-1?' active':''}" style="height:${Math.max(10,Math.round(n/sparkMax*100))}%"></div>`).join('');
     return `<tr>
-      <td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:${avatarColor(r.name)}">${avatarInitial(r.name)}</div><span style="font-size:13px;font-weight:500">${esc(r.name)}</span></div></td>
-      <td class="ca-num">${r.commits}</td>
-      <td class="ca-num" style="color:${r.w7?'var(--gold)':'var(--text3)'}">${r.w7||'—'}</td>
-      <td class="ca-num">${r.w14||'—'}</td>
-      <td class="ca-num">${r.w30||'—'}</td>
-      <td class="ca-num">${r.w60||'—'}</td>
-      <td class="ca-num" style="color:#4ADE80">${r.additions?'+'+r.additions:'—'}</td>
-      <td class="ca-num" style="color:var(--red)">${r.deletions?'-'+r.deletions:'—'}</td>
-      <td style="font-size:11px;color:var(--text3)">${timeAgo(r.recent)}</td>
-      <td><div class="ca-spark">${spark}</div></td>
+      <td style="width:200px"><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:${avatarColor(r.name)}">${avatarInitial(r.name)}</div><span style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px">${esc(r.name)}</span></div></td>
+      <td class="ca-num" style="width:70px">${r.commits}</td>
+      <td class="ca-num" style="width:80px;color:${r.period?'var(--gold)':'var(--text3)'}">${r.period||'—'}</td>
+      <td class="ca-num" style="width:80px;color:#4ADE80">${r.additions?'+'+r.additions:'—'}</td>
+      <td class="ca-num" style="width:80px;color:var(--red)">${r.deletions?'-'+r.deletions:'—'}</td>
+      <td style="width:110px;font-size:11px;color:var(--text3);white-space:nowrap">${timeAgo(r.recent)}</td>
+      <td style="width:100px"><div class="ca-spark">${spark}</div></td>
     </tr>`;
   }).join('');
 }
