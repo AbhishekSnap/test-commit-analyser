@@ -834,7 +834,7 @@ const MODEL     = 'claude-haiku-4-5-20251001';
 const LANG_COLORS = {JavaScript:'#f1e05a',TypeScript:'#3178c6',Python:'#3572A5',Go:'#00ADD8',Rust:'#dea584',Java:'#b07219','C#':'#178600','C++':'#f34b7d',Ruby:'#701516',PHP:'#4F5D95',Swift:'#FA7343',Kotlin:'#A97BFF',Dart:'#00B4AB',Shell:'#89e051',HTML:'#e34c26',CSS:'#563d7c',Vue:'#41b883',Svelte:'#ff3e00'};
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let ghToken     = sessionStorage.getItem('gd_gh_token') || '';
+let ghToken     = (sessionStorage.getItem('gd_gh_token') || '').replace(/[^\x20-\x7E]/g, '').trim();
 let ghUser      = null;
 let currentRepo = null;
 let allRepos    = [];
@@ -939,7 +939,7 @@ function showScreen(name) {
 
 // ── GITHUB DEVICE FLOW AUTH ──────────────────────────────────────────────────
 async function connectGitHub() {
-  const pat = document.getElementById('pat-input').value.trim();
+  const pat = cleanToken(document.getElementById('pat-input').value);
   if (!pat) { toast('⚠️','No token','Paste your GitHub Personal Access Token first'); return; }
   const btn = document.querySelector('.btn-connect');
   btn.disabled = true; btn.textContent = 'Verifying…';
@@ -1191,7 +1191,10 @@ async function fetchPRReviewComments(n) {
 }
 
 // ── CLAUDE API ───────────────────────────────────────────────────────────────
-function getKey() { return sessionStorage.getItem('gcrmcp_api_key')||''; }
+// Strip anything outside printable ASCII (32–126) — prevents ISO-8859-1 header errors
+// from copy-pasted tokens containing BOM, zero-width spaces, smart quotes, etc.
+function cleanToken(s) { return (s||'').replace(/[^\x20-\x7E]/g, '').trim(); }
+function getKey() { return cleanToken(sessionStorage.getItem('gcrmcp_api_key')||''); }
 
 async function analyzeCommit(sha) {
   if (commitAnalysisCache.has(sha)) return commitAnalysisCache.get(sha);
@@ -2082,7 +2085,7 @@ function setFilterByAuthor(name) {
 }
 
 function saveApiKey() {
-  const val = document.getElementById('api-key-inp').value.trim();
+  const val = cleanToken(document.getElementById('api-key-inp').value);
   if(!val) { toast('⚠️','Empty key','Enter your Anthropic API key first'); return; }
   sessionStorage.setItem('gcrmcp_api_key', val);
   document.getElementById('api-key-inp').value = '••••••••••••';
