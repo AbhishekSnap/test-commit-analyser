@@ -499,9 +499,14 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
     </div>
     <div class="two-col">
       <div>
-        <div class="search-bar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="commit-search" placeholder="Search by message, author or SHA…" oninput="filterCommits()">
+        <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+          <div class="search-bar" style="flex:1;margin-bottom:0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="commit-search" placeholder="Search by message, author, SHA or file…" oninput="filterCommits()">
+          </div>
+          <select id="branch-select" onchange="switchBranch(this.value)" style="background:var(--s1);border:1px solid var(--border);border-radius:var(--r-btn);padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;cursor:pointer;max-width:180px">
+            <option>Loading…</option>
+          </select>
         </div>
         <div class="filter-tabs" id="commit-filters">
           <button class="ftab active" onclick="setFilter('All',this)">All</button>
@@ -545,11 +550,17 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       <div class="stat-card"><div class="stat-label">Merged PRs</div><div class="stat-value" id="pr-merged">—</div></div>
       <div class="stat-card"><div class="stat-label">Avg Time to Merge</div><div class="stat-value" id="pr-ttm" style="font-size:24px">—</div><div class="stat-sub">hours</div></div>
     </div>
-    <div class="filter-tabs" id="pr-filters">
-      <button class="ftab active" onclick="setPRFilter('All',this)">All</button>
-      <button class="ftab" onclick="setPRFilter('Open',this)">Open</button>
-      <button class="ftab" onclick="setPRFilter('Merged',this)">Merged</button>
-      <button class="ftab" onclick="setPRFilter('Closed',this)">Closed</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="filter-tabs" id="pr-filters" style="margin-bottom:0">
+        <button class="ftab active" onclick="setPRFilter('All',this)">All</button>
+        <button class="ftab" onclick="setPRFilter('Open',this)">Open</button>
+        <button class="ftab" onclick="setPRFilter('Merged',this)">Merged</button>
+        <button class="ftab" onclick="setPRFilter('Closed',this)">Closed</button>
+      </div>
+      <button class="btn" onclick="exportPRCSV()" style="font-size:12px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
     </div>
     <div id="pr-list"></div>
   </div>
@@ -688,6 +699,7 @@ let API         = '';
 let commits = [], prs = [];
 let currentView = 'commits';
 let searchQ = '', commitFilter = 'All', prFilter = 'All';
+let currentBranch = '';
 let lastFetchedAt = null;
 let contribSort = { key: 'commits', dir: -1 };
 
@@ -897,8 +909,23 @@ function disconnect() {
   showScreen('landing');
 }
 
+async function fetchBranches() {
+  const data = await ghFetch(`${API}/branches?per_page=100`);
+  const sel = document.getElementById('branch-select');
+  if (!sel) return;
+  sel.innerHTML = data.map(b => `<option value="${esc(b.name)}" ${b.name===currentBranch?'selected':''}>${esc(b.name)}</option>`).join('');
+}
+async function switchBranch(name) {
+  currentBranch = name;
+  commitAnalysisCache.clear(); commitDetailCache.clear(); expandedCommits.clear();
+  commits = [];
+  renderCommitList();
+  await fetchCommits();
+  renderCommitList(); renderRightPanels(); updateStats();
+}
 async function fetchCommits() {
-  commits = await ghFetch(`${API}/commits?per_page=50`);
+  const q = currentBranch ? `&sha=${encodeURIComponent(currentBranch)}` : '';
+  commits = await ghFetch(`${API}/commits?per_page=50${q}`);
   return commits;
 }
 async function fetchPRs() {
@@ -1013,7 +1040,10 @@ function renderCommitList() {
     const msg  = c.commit.message.toLowerCase();
     const auth = (c.commit.author.name||'').toLowerCase();
     const sha  = c.sha.toLowerCase();
-    if (searchQ && !msg.includes(searchQ) && !auth.includes(searchQ) && !sha.includes(searchQ)) return false;
+    if (searchQ) {
+      const files = (commitDetailCache.get(c.sha)?.files||[]).map(f=>f.filename.toLowerCase()).join(' ');
+      if (!msg.includes(searchQ) && !auth.includes(searchQ) && !sha.includes(searchQ) && !files.includes(searchQ)) return false;
+    }
     if (commitFilter !== 'All' && getDisplayType(c) !== commitFilter) return false;
     return true;
   });
@@ -1186,6 +1216,10 @@ function expandedPRHtml(p) {
   const showFiles = files.slice(0,8);
   const moreFiles = files.length > 8;
   return `<div class="pr-body">
+    ${p.body?`<div style="background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div class="albl" style="margin-bottom:6px">Description</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${esc(p.body.slice(0,800))}${p.body.length>800?'…':''}</div>
+    </div>`:''}
     <div class="ag">
       <div class="abox"><div class="albl">What This PR Does</div><div class="acontent">${fmt(cached.summary)}</div></div>
       <div class="abox"><div class="albl">Technical Impact</div><div class="acontent">${fmt(cached.technical_impact)}</div></div>
@@ -1513,14 +1547,22 @@ function switchView(v) {
 }
 
 // ── ACTIONS ──────────────────────────────────────────────────────────────────
-function toggleTheme() {
-  const isLight = document.documentElement.classList.toggle('light');
+function applyTheme(light) {
+  document.documentElement.classList.toggle('light', light);
   const btn = document.getElementById('theme-btn');
-  btn.innerHTML = isLight
+  if (!btn) return;
+  btn.innerHTML = light
     ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Dark`
     : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> Light`;
-  toast('🎨','Theme changed', isLight?'Switched to light mode':'Switched to dark mode');
 }
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('gd_theme', isLight ? 'light' : 'dark');
+  applyTheme(isLight);
+  toast('🎨','Theme changed', isLight ? 'Switched to light mode' : 'Switched to dark mode');
+}
+// Apply saved theme on load — default is light
+applyTheme(localStorage.getItem('gd_theme') !== 'dark');
 
 function openConnectModal() { document.getElementById('connect-modal').classList.add('open'); }
 function closeModal(e) { if(e.target===e.currentTarget) e.currentTarget.classList.remove('open'); }
@@ -1606,6 +1648,37 @@ function exportCSV() {
   toast('⬇️','Export ready',`${commits.length} commits exported`);
 }
 
+function exportPRCSV() {
+  if(!prs.length){toast('⚠️','No data','Load PRs first');return;}
+  const rows=[['Number','Title','Author','State','Created','Merged At','Base Branch','Head Branch','Files','Additions','Deletions','Summary','Quality','Review Sentiment']];
+  prs.forEach(p=>{
+    const a=prAnalysisCache.get(p.number);
+    const files=prFilesCache.get(p.number)||[];
+    const add=files.reduce((s,f)=>s+f.additions,0);
+    const del=files.reduce((s,f)=>s+f.deletions,0);
+    rows.push([
+      p.number,
+      `"${(p.title||'').replace(/"/g,'""')}"`,
+      p.user.login,
+      p.merged_at?'merged':p.state,
+      p.created_at,
+      p.merged_at||'',
+      p.base.ref, p.head.ref,
+      files.length, add, del,
+      `"${(a?.summary||'').replace(/"/g,'""')}"`,
+      `"${(a?.quality||'').replace(/"/g,'""')}"`,
+      `"${(a?.review_sentiment||'').replace(/"/g,'""')}"`,
+    ]);
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url;
+  a.download=`pr-log-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('⬇️','Export ready',`${prs.length} PRs exported`);
+}
+
 function downloadTypeCSV() {
   const counts={};
   commits.forEach(c=>{const t=getDisplayType(c);counts[t]=(counts[t]||0)+1;});
@@ -1634,11 +1707,11 @@ async function refresh() {
 
 // ── INIT (runs after a repo is selected) ─────────────────────────────────────
 async function init() {
-  // Show skeleton while loading
+  currentBranch = currentRepo?.default_branch || '';
   const skel = document.getElementById('skel');
   if (skel) { skel.style.display='flex'; skel.style.opacity='1'; }
   try {
-    await Promise.all([fetchCommits(), fetchPRs()]);
+    await Promise.all([fetchCommits(), fetchPRs(), fetchBranches()]);
     lastFetchedAt=new Date();
     document.getElementById('last-fetched').textContent=timeAgo(lastFetchedAt);
   } catch(e) { /* errors toasted inside */ }
