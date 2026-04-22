@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="GitCRMCP — AI-powered commit and PR intelligence dashboard for AbhishekSnap/test-commit-analyser">
+<meta property="og:title" content="GitCRMCP — Commit Intelligence">
+<meta property="og:description" content="AI-powered commit and PR analysis dashboard">
+<title>GitCRMCP — Commit Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080A0D;--s1:#0E1117;--s2:#141820;--s3:#1A1F2A;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --text:#EDE9E3;--text2:#8A9AAF;--text3:#444E5E;
+  --topbar-bg:rgba(8,10,13,0.88);
+  --gold:#C9A84C;--gold-dim:rgba(201,168,76,0.12);
+  --teal:#2DD4BF;--teal-dim:rgba(45,212,191,0.10);
+  --red:#F87171;--red-dim:rgba(248,113,113,0.10);
+  --amber:#FBB040;--amber-dim:rgba(251,176,64,0.10);
+  --blue:#60A5FA;
+  --r-card:14px;--r-btn:8px;--r-pill:100px;
+  --sw:220px;--th:60px;
+  --serif:'DM Serif Display',serif;
+  --sans:'Outfit',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+html.light{
+  --bg:#F5F2ED;--s1:#FDFCFA;--s2:#F0EDE7;--s3:#E6E1D9;
+  --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.13);
+  --text:#1A1714;--text2:#524A3E;--text3:#9A9080;
+  --topbar-bg:rgba(245,242,237,0.92);
+  --gold:#96711F;--gold-dim:rgba(150,113,31,0.10);
+  --teal:#0D7A70;--teal-dim:rgba(13,122,112,0.10);
+  --red:#C0392B;--red-dim:rgba(192,57,43,0.09);
+  --amber:#A0560A;--amber-dim:rgba(160,86,10,0.09);
+  --blue:#1D4ED8;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--text3);border-radius:100px}
+
+/* BLOBS */
+.blob{position:fixed;border-radius:50%;filter:blur(120px);opacity:.35;pointer-events:none;z-index:0}
+.blob-1{width:400px;height:400px;top:-100px;left:-100px;background:var(--gold)}
+.blob-2{width:500px;height:500px;bottom:-150px;right:-100px;background:var(--teal)}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sw);background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:background .3s}
+.sidebar-logo{padding:24px 20px 16px;border-bottom:1px solid var(--border)}
+.sidebar-logo h1{font-family:var(--serif);font-size:22px;color:var(--text);letter-spacing:-.5px}
+.sidebar-logo h1 span{color:var(--gold)}
+.sidebar-logo p{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:.5px}
+.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+.nav-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);padding:0 8px;margin:16px 0 6px}
+.nav-label:first-child{margin-top:0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-btn);cursor:pointer;color:var(--text2);font-size:14px;font-weight:500;transition:all .15s;border-left:2px solid transparent;text-decoration:none}
+.nav-item:hover{background:var(--s2);color:var(--text)}
+.nav-item.active{background:var(--gold-dim);color:var(--gold);border-left-color:var(--gold)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.sidebar-footer a{font-family:var(--mono);font-size:11px;color:var(--text2);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-footer a:hover{color:var(--text)}
+
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:var(--sw);right:0;height:var(--th);background:var(--topbar-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:99}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-title{font-family:var(--serif);font-size:20px;color:var(--text)}
+.topbar-badge{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:var(--r-pill);background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.2)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r-btn);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid var(--border2);background:var(--s2);color:var(--text2)}
+.btn:hover{background:var(--s3);color:var(--text)}
+.btn-primary{background:var(--gold);border-color:var(--gold);color:#080A0D;font-weight:600}
+.btn-primary:hover{opacity:.9;color:#080A0D}
+.btn svg{width:14px;height:14px}
+.btn.spinning svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* MAIN */
+.main{margin-left:var(--sw);padding-top:var(--th);min-height:100vh;position:relative;z-index:1}
+.view{display:none;padding:28px;animation:fadeUp .25s ease}
+.view.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);padding:20px;transition:border-color .2s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px}
+.stat-value{font-family:var(--serif);font-size:36px;color:var(--text);line-height:1}
+.stat-sub{font-size:12px;color:var(--text2);margin-top:4px}
+
+/* LAYOUT */
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+
+/* SEARCH */
+.search-bar{position:relative;margin-bottom:14px}
+.search-bar input{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-btn);padding:10px 14px 10px 38px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:border-color .15s}
+.search-bar input:focus{border-color:var(--border2)}
+.search-bar input::placeholder{color:var(--text3)}
+.search-bar svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);width:15px;height:15px}
+
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.ftab{padding:5px 12px;border-radius:var(--r-pill);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all .15s;font-family:var(--sans)}
+.ftab:hover{background:var(--s2);color:var(--text)}
+.ftab.active{background:var(--gold-dim);color:var(--gold);border-color:rgba(201,168,76,.25)}
+
+/* DATE DIVIDER */
+.date-div{font-size:11px;font-weight:700;color:var(--text3);padding:12px 0 6px;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:10px}
+.date-div::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* COMMIT CARD */
+.commit-card{background:var(--s1);border:1px solid var(--border);border-left:3px solid transparent;border-radius:var(--r-card);margin-bottom:8px;overflow:hidden;transition:border-color .2s,background .2s}
+.commit-card:hover{background:var(--s2)}
+.commit-card.risk-medium{border-left-color:var(--amber)}
+.commit-card.risk-high{border-left-color:var(--red)}
+.commit-card.expanded{background:var(--s2)}
+.commit-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer}
+.commit-msg{font-weight:600;font-size:14px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.commit-meta{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sha-pill{font-family:var(--mono);font-size:11px;color:var(--blue);background:var(--s3);padding:2px 7px;border-radius:4px}
+.av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.author-n{font-size:12px;color:var(--text2)}
+.tago{font-size:11px;color:var(--text3);white-space:nowrap}
+.qdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.qdot.good{background:#4ADE80}
+.qdot.needs{background:var(--amber)}
+.qdot.spin-dot{background:transparent;border:2px solid var(--text3);border-top-color:var(--gold);animation:spin .8s linear infinite}
+
+/* TYPE BADGE */
+.tbadge{font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap;flex-shrink:0}
+.t-feature{background:var(--teal-dim);color:var(--teal)}
+.t-bugfix{background:var(--red-dim);color:var(--red)}
+.t-refactor{background:var(--gold-dim);color:var(--gold)}
+.t-chore{background:var(--s3);color:var(--text3)}
+.t-docs{background:var(--amber-dim);color:var(--amber)}
+.t-tests{background:var(--teal-dim);color:var(--teal)}
+.t-perf{background:var(--amber-dim);color:var(--amber)}
+.t-security{background:var(--red-dim);color:var(--red)}
+
+/* EXPANDED */
+.commit-body{padding:0 16px 16px;border-top:1px solid var(--border)}
+.ag{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.abox{background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:14px}
+.abox.fw{grid-column:1/-1}
+.albl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);margin-bottom:8px}
+.acontent{font-size:13px;color:var(--text2);line-height:1.6}
+.acontent strong{color:var(--text);font-family:var(--mono);font-size:12px}
+.sugg-msg{font-style:italic;color:var(--gold);font-size:13px;font-family:var(--mono)}
+.orig-msg{font-size:11px;color:var(--text3);margin-top:4px}
+.risk-teal{color:var(--teal)}
+.risk-amber{color:var(--amber)}
+.risk-red{color:var(--red)}
+.chips{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:var(--r-pill);background:var(--s3);color:var(--text2);border:1px solid var(--border)}
+.chip.add{color:#4ADE80}
+.chip.del{color:var(--red)}
+.act-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.abtn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);transition:all .15s;font-family:var(--sans);text-decoration:none}
+.abtn:hover{background:var(--s3);color:var(--text)}
+.abtn svg{width:12px;height:12px}
+
+/* SKELETON */
+.skeleton{background:linear-gradient(90deg,var(--s2) 25%,var(--s3) 50%,var(--s2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);padding:16px;margin-bottom:8px}
+
+/* PANELS */
+.panel{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);padding:18px;margin-bottom:16px}
+.panel-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.panel-title a{font-size:11px;color:var(--text3);text-decoration:none;font-weight:400}
+.panel-title a:hover{color:var(--gold)}
+
+/* BAR CHART */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bar-label{font-size:12px;color:var(--text2);width:90px;flex-shrink:0}
+.bar-track{flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.bar-cnt{font-family:var(--mono);font-size:11px;color:var(--text3);width:20px;text-align:right}
+
+/* DONUT */
+.donut-wrap{display:flex;flex-direction:column;align-items:center}
+.donut-center{font-family:var(--serif);font-size:28px;fill:var(--text)}
+.donut-center-sub{font-size:10px;fill:var(--text3);font-family:var(--mono)}
+.donut-legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
+.leg-dot{width:8px;height:8px;border-radius:50%}
+
+/* HEATMAP */
+.heatmap-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.hm-lbl{font-family:var(--mono);font-size:8px;color:var(--text3);text-align:center}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.hm-cell{aspect-ratio:1;border-radius:2px;background:var(--s3);cursor:pointer;transition:opacity .15s;position:relative}
+.hm-cell:hover::after{content:attr(data-tip);position:absolute;bottom:120%;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--border2);color:var(--text);font-size:10px;padding:3px 7px;border-radius:5px;white-space:nowrap;z-index:999;font-family:var(--mono);pointer-events:none}
+
+/* CONTRIBUTORS */
+.contrib-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.contrib-row:last-child{border-bottom:none}
+.contrib-row:hover .cname{color:var(--gold)}
+.cname{font-size:13px;font-weight:500;flex:1}
+.ccnt{font-family:var(--mono);font-size:12px;color:var(--text2)}
+.cbar{width:60px;height:3px;background:var(--s3);border-radius:2px;overflow:hidden}
+.cbar-fill{height:100%;background:var(--gold);border-radius:2px}
+
+/* PR VIEW */
+.pr-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);margin-bottom:10px;overflow:hidden;transition:background .2s}
+.pr-card:hover{background:var(--s2)}
+.pr-card.expanded{background:var(--s2)}
+.pr-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.pr-num{font-family:var(--mono);font-size:13px;color:var(--gold);flex-shrink:0;width:36px}
+.pr-title{font-weight:600;font-size:14px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-meta{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sbadge{font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 9px;border-radius:var(--r-pill)}
+.s-open{background:var(--teal-dim);color:var(--teal)}
+.s-merged{background:var(--gold-dim);color:var(--gold)}
+.s-closed{background:var(--s3);color:var(--text3)}
+.branch-lbl{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--s3);padding:2px 7px;border-radius:4px}
+.pr-body{padding:0 16px 16px;border-top:1px solid var(--border)}
+.pr-file-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border)}
+.pr-file-row:last-child{border-bottom:none}
+.pr-fname{font-family:var(--mono);color:var(--text2);flex:1;font-size:11px}
+.fadd{color:#4ADE80;font-family:var(--mono);font-size:11px}
+.fdel{color:var(--red);font-family:var(--mono);font-size:11px}
+.rev-badge{font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 8px;border-radius:var(--r-pill)}
+.rev-approved{background:var(--teal-dim);color:var(--teal)}
+.rev-changes{background:var(--red-dim);color:var(--red)}
+.rev-mixed{background:var(--amber-dim);color:var(--amber)}
+.rev-none{background:var(--s3);color:var(--text3)}
+
+/* INSIGHTS */
+.insights-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ip{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);padding:20px}
+.ip.full{grid-column:1/-1}
+.ip-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px}
+
+/* CONTRIB TABLE */
+.ctable{width:100%;border-collapse:collapse}
+.ctable th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none}
+.ctable th:hover{color:var(--text2)}
+.ctable td{padding:10px 12px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border)}
+.ctable tr:last-child td{border-bottom:none}
+.ctable tr:hover td{background:var(--s2)}
+
+/* SETTINGS */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.sc{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);padding:22px}
+.sc.fw{grid-column:1/-1}
+.sc-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.srow:last-child{border-bottom:none}
+.srow-lbl{font-size:13px;color:var(--text2)}
+.srow-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.toggle{position:relative;width:40px;height:22px;cursor:pointer;display:block}
+.toggle input{display:none}
+.t-track{width:40px;height:22px;background:var(--s3);border-radius:11px;transition:background .2s;border:1px solid var(--border2);display:block}
+.toggle input:checked+.t-track{background:var(--gold);border-color:var(--gold)}
+.t-thumb{position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none}
+.toggle input:checked~.t-thumb{transform:translateX(18px)}
+.api-inp{width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r-btn);padding:10px 14px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;margin-bottom:10px;transition:border-color .15s}
+.api-inp:focus{border-color:var(--gold)}
+.api-note{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5}
+.status-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);padding:6px 0}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#4ADE80}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--s2);border:1px solid var(--border2);border-radius:12px;min-width:280px;max-width:360px;pointer-events:all;animation:slideUp .3s ease;backdrop-filter:blur(8px)}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.toast.fading{animation:fadeOut .3s ease forwards}
+@keyframes fadeOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}
+.t-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.t-title{font-size:13px;font-weight:600;color:var(--text)}
+.t-msg{font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:2px}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-card);padding:28px;max-width:500px;width:90%;transform:scale(.95);transition:transform .2s}
+.overlay.open .modal{transform:scale(1)}
+.modal-title{font-family:var(--serif);font-size:22px;margin-bottom:16px;color:var(--text)}
+.modal pre{background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;color:var(--text2);overflow-x:auto;margin-bottom:16px;line-height:1.6}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+
+/* INITIAL SKELETON */
+#skel{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;transition:opacity .3s}
+.skel-sb{width:var(--sw);background:var(--s1);border-right:1px solid var(--border);padding:24px 16px;flex-shrink:0}
+.skel-main{flex:1;padding:80px 28px 28px}
+.skel-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.sk-box{border-radius:var(--r-card)}
+
+/* ERROR */
+.err-banner{background:var(--red-dim);border:1px solid rgba(248,113,113,.2);border-radius:var(--r-btn);padding:12px 16px;font-size:13px;color:var(--red);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-state h3{font-size:16px;color:var(--text2);margin-bottom:8px}
+.empty-state p{font-size:13px}
+
+/* SVG CHART */
+text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
+</style>
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- INITIAL SKELETON -->
+<div id="skel">
+  <div class="skel-sb">
+    <div class="skeleton sk-box" style="height:50px;margin-bottom:24px"></div>
+    <div class="skeleton sk-box" style="height:12px;margin-bottom:10px;width:70%"></div>
+    <div class="skeleton sk-box" style="height:36px;margin-bottom:8px"></div>
+    <div class="skeleton sk-box" style="height:36px;margin-bottom:8px"></div>
+    <div class="skeleton sk-box" style="height:36px;margin-bottom:8px"></div>
+  </div>
+  <div class="skel-main">
+    <div class="skel-stats">
+      <div class="skeleton sk-box" style="height:90px"></div>
+      <div class="skeleton sk-box" style="height:90px"></div>
+      <div class="skeleton sk-box" style="height:90px"></div>
+      <div class="skeleton sk-box" style="height:90px"></div>
+    </div>
+    <div class="skeleton sk-box" style="height:64px;margin-bottom:8px"></div>
+    <div class="skeleton sk-box" style="height:64px;margin-bottom:8px"></div>
+    <div class="skeleton sk-box" style="height:64px;margin-bottom:8px"></div>
+    <div class="skeleton sk-box" style="height:64px"></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>Git<span>CR</span>MCP</h1>
+    <p>// commit intelligence</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Analysis</div>
+    <div class="nav-item active" onclick="switchView('commits')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      Commits
+    </div>
+    <div class="nav-item" onclick="switchView('prs')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 012 2v7M6 9v12"/></svg>
+      Pull Requests
+    </div>
+    <div class="nav-item" onclick="switchView('insights')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Insights
+    </div>
+    <div class="nav-label">System</div>
+    <div class="nav-item" onclick="switchView('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+    </div>
+    <a class="nav-item" href="https://github.com/AbhishekSnap/test-commit-analyser" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+      View Repo
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="live-dot"></div>
+    <a href="https://github.com/AbhishekSnap/test-commit-analyser" target="_blank">AbhishekSnap/test-commit-analyser</a>
+  </div>
+</aside>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-title" id="topbar-title">Commits</span>
+    <span class="topbar-badge" id="topbar-badge">Live</span>
+  </div>
+  <div class="topbar-right">
+    <button class="btn" onclick="toggleTheme()" id="theme-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Light
+    </button>
+    <button class="btn" onclick="openConnectModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+      Connect Repo
+    </button>
+    <button class="btn" onclick="exportCSV()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export CSV
+    </button>
+    <button class="btn btn-primary" onclick="refresh()" id="refresh-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- COMMITS VIEW -->
+  <div class="view active" id="view-commits">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Total Commits</div><div class="stat-value" id="s-total">—</div><div class="stat-sub">last 50 fetched</div></div>
+      <div class="stat-card"><div class="stat-label">Contributors</div><div class="stat-value" id="s-contrib">—</div><div class="stat-sub">unique authors</div></div>
+      <div class="stat-card"><div class="stat-label">High Risk</div><div class="stat-value" id="s-risk">—</div><div class="stat-sub">from AI analysis</div></div>
+      <div class="stat-card"><div class="stat-label">Avg Quality</div><div class="stat-value" id="s-quality">—</div><div class="stat-sub">% Good commits</div></div>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="commit-search" placeholder="Search by message, author or SHA…" oninput="filterCommits()">
+        </div>
+        <div class="filter-tabs" id="commit-filters">
+          <button class="ftab active" onclick="setFilter('All',this)">All</button>
+          <button class="ftab" onclick="setFilter('Feature',this)">Feature</button>
+          <button class="ftab" onclick="setFilter('Bug Fix',this)">Bug Fix</button>
+          <button class="ftab" onclick="setFilter('Refactor',this)">Refactor</button>
+          <button class="ftab" onclick="setFilter('Chore',this)">Chore</button>
+          <button class="ftab" onclick="setFilter('Docs',this)">Docs</button>
+          <button class="ftab" onclick="setFilter('Tests',this)">Tests</button>
+          <button class="ftab" onclick="setFilter('Performance',this)">Performance</button>
+          <button class="ftab" onclick="setFilter('Security',this)">Security</button>
+        </div>
+        <div id="commit-list"></div>
+      </div>
+      <div>
+        <div class="panel">
+          <div class="panel-title">Commit Types <a href="#" onclick="downloadTypeCSV();return false">Export</a></div>
+          <div id="type-chart"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Risk Distribution</div>
+          <div class="donut-wrap" id="risk-donut"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Activity — <span id="hm-month"></span></div>
+          <div class="heatmap-labels" id="hm-labels"></div>
+          <div class="heatmap-grid" id="heatmap"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Top Contributors <a href="#" onclick="switchView('insights');return false">See all</a></div>
+          <div id="top-contribs"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PR VIEW -->
+  <div class="view" id="view-prs">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Open PRs</div><div class="stat-value" id="pr-open">—</div></div>
+      <div class="stat-card"><div class="stat-label">Merged PRs</div><div class="stat-value" id="pr-merged">—</div></div>
+      <div class="stat-card"><div class="stat-label">Avg Time to Merge</div><div class="stat-value" id="pr-ttm" style="font-size:24px">—</div><div class="stat-sub">hours</div></div>
+    </div>
+    <div class="filter-tabs" id="pr-filters">
+      <button class="ftab active" onclick="setPRFilter('All',this)">All</button>
+      <button class="ftab" onclick="setPRFilter('Open',this)">Open</button>
+      <button class="ftab" onclick="setPRFilter('Merged',this)">Merged</button>
+      <button class="ftab" onclick="setPRFilter('Closed',this)">Closed</button>
+    </div>
+    <div id="pr-list"></div>
+  </div>
+
+  <!-- INSIGHTS VIEW -->
+  <div class="view" id="view-insights">
+    <div class="insights-grid">
+      <div class="ip">
+        <div class="ip-title">Quality Trend — Last 14 Days</div>
+        <div id="quality-chart"></div>
+      </div>
+      <div class="ip">
+        <div class="ip-title">Commits by Day of Week</div>
+        <div id="dow-chart"></div>
+      </div>
+      <div class="ip full">
+        <div class="ip-title">All Contributors</div>
+        <table class="ctable" id="contrib-table">
+          <thead><tr>
+            <th onclick="sortContribs('name')">Author</th>
+            <th onclick="sortContribs('commits')">Commits</th>
+            <th onclick="sortContribs('additions')">Additions</th>
+            <th onclick="sortContribs('deletions')">Deletions</th>
+            <th onclick="sortContribs('recent')">Most Recent</th>
+          </tr></thead>
+          <tbody id="contrib-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS VIEW -->
+  <div class="view" id="view-settings">
+    <div class="settings-grid">
+      <div class="sc">
+        <div class="sc-title">Anthropic API Key</div>
+        <input type="password" class="api-inp" id="api-key-inp" placeholder="sk-ant-…">
+        <button class="btn btn-primary" onclick="saveApiKey()" style="width:100%">Save Key</button>
+        <p class="api-note">Key is stored in sessionStorage only. Cleared when the tab closes. Required for AI analysis.</p>
+      </div>
+      <div class="sc">
+        <div class="sc-title">Analysis Preferences</div>
+        <div class="srow">
+          <div><div class="srow-lbl">Auto-analyse on expand</div><div class="srow-sub">Call Claude when commit is opened</div></div>
+          <label class="toggle"><input type="checkbox" id="pref-auto" checked onchange="savePref()"><span class="t-track"></span><span class="t-thumb"></span></label>
+        </div>
+        <div class="srow">
+          <div><div class="srow-lbl">Security scanning</div><div class="srow-sub">Red badge for auth/security files</div></div>
+          <label class="toggle"><input type="checkbox" id="pref-sec" checked onchange="savePref()"><span class="t-track"></span><span class="t-thumb"></span></label>
+        </div>
+        <div class="srow">
+          <div><div class="srow-lbl">Show suggested messages</div><div class="srow-sub">Display improved commit messages</div></div>
+          <label class="toggle"><input type="checkbox" id="pref-sugg" checked onchange="savePref()"><span class="t-track"></span><span class="t-thumb"></span></label>
+        </div>
+      </div>
+      <div class="sc fw">
+        <div class="sc-title">Connected Repository</div>
+        <div class="status-row"><div class="status-dot"></div>AbhishekSnap / test-commit-analyser — Public, no token required</div>
+        <div class="srow" style="margin-top:8px">
+          <div class="srow-lbl">Last fetched</div>
+          <span id="last-fetched" style="font-size:12px;color:var(--text3);font-family:var(--mono)">—</span>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn" onclick="disconnectRepo()" style="color:var(--red);border-color:var(--red-dim)">Disconnect &amp; Clear All Data</button>
+        </div>
+      </div>
+      <div class="sc fw">
+        <div class="sc-title">Analysis Cache</div>
+        <div class="srow">
+          <div class="srow-lbl">Cached commit analyses</div>
+          <span id="cache-commits" style="font-family:var(--mono);font-size:13px;color:var(--text2)">0</span>
+        </div>
+        <div class="srow">
+          <div class="srow-lbl">Cached PR analyses</div>
+          <span id="cache-prs" style="font-family:var(--mono);font-size:13px;color:var(--text2)">0</span>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn" onclick="clearCache()">Clear Analysis Cache</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- CONNECT MODAL -->
+<div class="overlay" id="connect-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">Connect Your Repo</div>
+    <pre># Add to .github/workflows/main.yml
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    types: [opened, closed, reopened]
+
+# Secrets required in repo Settings → Actions:
+ANTHROPIC_API_KEY: your_key_here
+GITHUB_TOKEN:      auto-provided by GitHub
+
+# Drop into your repo:
+#   .mcp/server.py
+#   .mcp/analyser.py
+#   .mcp/pr-analyser.py
+#   .mcp/requirements.txt
+# Analysis runs automatically on every commit and PR.</pre>
+    <div class="modal-actions">
+      <button class="btn" onclick="document.getElementById('connect-modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="copySetup()">Copy Setup</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const API = 'https://api.github.com/repos/AbhishekSnap/test-commit-analyser';
+const CLAUDE = 'https://api.anthropic.com/v1/messages';
+const MODEL  = 'claude-sonnet-4-20250514';
+const GH_H   = { 'Accept': 'application/vnd.github+json' };
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let commits = [], prs = [];
+let currentView = 'commits';
+let searchQ = '', commitFilter = 'All', prFilter = 'All';
+let lastFetchedAt = null;
+let contribSort = { key: 'commits', dir: -1 };
+
+const commitAnalysisCache = new Map();
+const prAnalysisCache     = new Map();
+const commitDetailCache   = new Map();
+const prFilesCache        = new Map();
+const prReviewsCache      = new Map();
+const expandedCommits     = new Set();
+const expandedPRs         = new Set();
+
+let settings = { autoAnalyze: true, securityScan: true, showSuggested: true };
+
+const COLORS = ['#C9A84C','#2DD4BF','#F87171','#60A5FA','#FBB040','#A78BFA','#34D399','#F472B6'];
+
+// ── UTILS ────────────────────────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(txt) {
+  return esc(txt)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\\n|\n/g,'<br>');
+}
+function timeAgo(d) {
+  const diff = (Date.now() - new Date(d)) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  if (diff < 604800) return Math.floor(diff/86400) + 'd ago';
+  return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+function fmtDate(d) {
+  const dt = new Date(d);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yest  = new Date(today); yest.setDate(yest.getDate()-1);
+  const day   = new Date(dt); day.setHours(0,0,0,0);
+  const label = day.getTime()===today.getTime() ? '— Today'
+              : day.getTime()===yest.getTime()  ? '— Yesterday' : '';
+  return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + ' ' + label;
+}
+function dayKey(d) { return new Date(d).toISOString().slice(0,10); }
+function avatarColor(name) { let h=0; for(let c of name||'?') h=(h<<5)-h+c.charCodeAt(0); return COLORS[Math.abs(h)%COLORS.length]; }
+function avatarInitial(name) { return (name||'?').charAt(0).toUpperCase(); }
+function detectType(msg) {
+  msg = (msg||'').toLowerCase();
+  if (/^feat(\(|:)/.test(msg) || msg.includes('feature')) return 'Feature';
+  if (/^fix(\(|:)/.test(msg)  || msg.includes('bug'))     return 'Bug Fix';
+  if (/^refactor(\(|:)/.test(msg))                        return 'Refactor';
+  if (/^chore(\(|:)/.test(msg))                           return 'Chore';
+  if (/^docs?(\(|:)/.test(msg))                           return 'Docs';
+  if (/^tests?(\(|:)/.test(msg) || msg.includes('test'))  return 'Tests';
+  if (/^perf(\(|:)/.test(msg))                            return 'Performance';
+  if (msg.includes('security') || msg.includes('auth'))   return 'Security';
+  return 'Chore';
+}
+function typeCls(t) {
+  return ({Feature:'t-feature','Bug Fix':'t-bugfix',Refactor:'t-refactor',Chore:'t-chore',Docs:'t-docs',Tests:'t-tests',Performance:'t-perf',Security:'t-security'})[t]||'t-chore';
+}
+function riskCls(r) { if(!r)return''; r=r.toLowerCase(); if(r.startsWith('high'))return'risk-high'; if(r.startsWith('med'))return'risk-medium'; return''; }
+function riskColor(r) { if(!r)return'risk-teal'; r=r.toLowerCase(); if(r.startsWith('high'))return'risk-red'; if(r.startsWith('med'))return'risk-amber'; return'risk-teal'; }
+function isSecurityFile(fname) { return /auth|secret|password|token|crypto|ssl|cert|key|credential/i.test(fname); }
+function hasSecurityTouch(files) { return (files||[]).some(f=>isSecurityFile(f.filename)); }
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+function toast(icon, title, msg) {
+  const w = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span class="t-icon">${icon}</span><div><div class="t-title">${esc(title)}</div><div class="t-msg">${esc(msg)}</div></div>`;
+  w.appendChild(el);
+  setTimeout(()=>{ el.classList.add('fading'); setTimeout(()=>el.remove(),300); }, 3500);
+}
+
+// ── GITHUB API ───────────────────────────────────────────────────────────────
+async function ghFetch(url, accept) {
+  const h = accept ? {...GH_H,'Accept':accept} : GH_H;
+  const r = await fetch(url, {headers:h});
+  if (r.status===403||r.status===429) { toast('⚠️','Rate limit','GitHub rate limit reached. Try again in 60s.'); throw new Error('rate-limit'); }
+  if (r.status===404) { toast('❌','Not found','Repository not found or no data yet.'); throw new Error('not-found'); }
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+async function fetchCommits() {
+  commits = await ghFetch(`${API}/commits?per_page=50`);
+  return commits;
+}
+async function fetchPRs() {
+  prs = await ghFetch(`${API}/pulls?state=all&per_page=20`);
+  return prs;
+}
+async function fetchCommitDetail(sha) {
+  if (commitDetailCache.has(sha)) return commitDetailCache.get(sha);
+  const d = await ghFetch(`${API}/commits/${sha}`);
+  commitDetailCache.set(sha, d);
+  return d;
+}
+async function fetchPRFiles(n) {
+  if (prFilesCache.has(n)) return prFilesCache.get(n);
+  const d = await ghFetch(`${API}/pulls/${n}/files`);
+  prFilesCache.set(n, d);
+  return d;
+}
+async function fetchPRReviews(n) {
+  if (prReviewsCache.has(n)) return prReviewsCache.get(n);
+  const d = await ghFetch(`${API}/pulls/${n}/reviews`);
+  prReviewsCache.set(n, d);
+  return d;
+}
+
+// ── CLAUDE API ───────────────────────────────────────────────────────────────
+function getKey() { return sessionStorage.getItem('gcrmcp_api_key')||''; }
+
+async function analyzeCommit(sha) {
+  if (commitAnalysisCache.has(sha)) return commitAnalysisCache.get(sha);
+  const key = getKey();
+  if (!key) { switchView('settings'); toast('🔑','API Key Required','Add your Anthropic API key in Settings to enable AI analysis'); return null; }
+  const detail = await fetchCommitDetail(sha);
+  const files  = (detail.files||[]).slice(0,20);
+  const diff   = files.map(f=>(f.patch||'').slice(0,300)).join('\n').slice(0,3000);
+  const msg = `Commit SHA: ${sha.slice(0,7)}\nMessage: ${detail.commit.message}\nAuthor: ${detail.commit.author.name}\nDate: ${detail.commit.author.date}\nFiles changed: ${files.length}\n${files.map(f=>`${f.filename}: +${f.additions} -${f.deletions}`).join('\n')}\n\nDiff (first 3000 chars):\n${diff}`;
+  const sys = `You are a senior software engineer reviewing a git commit.\nAnalyse the provided commit data and return a JSON object with exactly these six keys:\n  "plain_summary": 2-3 sentence plain-English description of what changed (non-technical, suitable for a project manager)\n  "technical_summary": detailed per-file technical breakdown. For EACH file changed, produce a section: "**filename.py**\\n- FunctionOrClass: what specifically changed". Reference exact function names, class names, decorators, and constants.\n  "change_type": exactly one of: Bug Fix | Feature | Refactor | Chore | Docs | Tests | Performance | Security\n  "quality": one-line starting with "Good" or "Needs improvement", em-dash, short reason\n  "risk_level": one of: Low | Medium | High — em-dash and one-line reason\n  "suggested_message": return original if clear and follows conventional commits; otherwise return improved type(scope): description\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
+  const res = await fetch(CLAUDE, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-allow-browser':'true'},
+    body: JSON.stringify({model:MODEL,max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
+  });
+  if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.error?.message||'Claude API error'); }
+  const data = await res.json();
+  let raw = data.content[0].text.trim();
+  if (raw.startsWith('```')) raw = raw.split('\n').slice(1,-1).join('\n').trim();
+  const analysis = JSON.parse(raw);
+  commitAnalysisCache.set(sha, analysis);
+  updateStats(); renderRightPanels();
+  return analysis;
+}
+
+async function analyzePR(num, pr) {
+  if (prAnalysisCache.has(num)) return prAnalysisCache.get(num);
+  const key = getKey();
+  if (!key) { switchView('settings'); toast('🔑','API Key Required','Add your Anthropic API key in Settings'); return null; }
+  const [files, reviews] = await Promise.all([fetchPRFiles(num), fetchPRReviews(num)]);
+  const msg = `PR #${num}: ${pr.title}\nAuthor: ${pr.user.login}\nBase: ${pr.base.ref}\nHead: ${pr.head.ref}\nDescription: ${pr.body||'No description provided'}\nCommits: ${pr.commits||'?'}\nFiles changed: ${files.length}\n${files.map(f=>`${f.filename}: +${f.additions} -${f.deletions}`).join('\n')}\nReviews:\n${reviews.map(r=>`${r.user.login}: ${r.state}`).join('\n')||'No reviews yet'}`;
+  const sys = `You are a senior software engineer reviewing a GitHub pull request.\nReturn a JSON object with exactly four keys:\n  "summary": 2-3 sentence plain-English description suitable for a non-technical stakeholder.\n  "technical_impact": per-file breakdown. For EACH file: "**filename.py**\\n- FunctionOrClass: what changed". Be precise.\n  "review_sentiment": one of: Approved | Changes Requested | Mixed | No Reviews Yet — em-dash and one-line summary.\n  "quality": starts with "Good" or "Needs improvement", em-dash, short reason.\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
+  const res = await fetch(CLAUDE, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-allow-browser':'true'},
+    body: JSON.stringify({model:MODEL,max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
+  });
+  if (!res.ok) throw new Error('Claude API error');
+  const data = await res.json();
+  let raw = data.content[0].text.trim();
+  if (raw.startsWith('```')) raw = raw.split('\n').slice(1,-1).join('\n').trim();
+  const analysis = JSON.parse(raw);
+  prAnalysisCache.set(num, analysis);
+  return analysis;
+}
+
+// ── RENDERING: COMMITS ───────────────────────────────────────────────────────
+function getDisplayType(commit) {
+  const cached = commitAnalysisCache.get(commit.sha);
+  return cached ? cached.change_type : detectType(commit.commit.message);
+}
+
+function filterCommits() {
+  searchQ = document.getElementById('commit-search').value.toLowerCase();
+  renderCommitList();
+}
+function setFilter(f, el) {
+  commitFilter = f;
+  document.querySelectorAll('#commit-filters .ftab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderCommitList();
+}
+function setPRFilter(f, el) {
+  prFilter = f;
+  document.querySelectorAll('#pr-filters .ftab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderPRList();
+}
+
+function renderCommitList() {
+  const list = document.getElementById('commit-list');
+  let filtered = commits.filter(c=>{
+    const msg  = c.commit.message.toLowerCase();
+    const auth = (c.commit.author.name||'').toLowerCase();
+    const sha  = c.sha.toLowerCase();
+    if (searchQ && !msg.includes(searchQ) && !auth.includes(searchQ) && !sha.includes(searchQ)) return false;
+    if (commitFilter !== 'All' && getDisplayType(c) !== commitFilter) return false;
+    return true;
+  });
+  if (!filtered.length) { list.innerHTML='<div class="empty-state"><h3>No commits match</h3><p>Try a different search or filter.</p></div>'; return; }
+  // group by date
+  const groups = {};
+  filtered.forEach(c=>{
+    const k = dayKey(c.commit.author.date);
+    if (!groups[k]) groups[k]=[];
+    groups[k].push(c);
+  });
+  let html = '';
+  Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(k=>{
+    html += `<div class="date-div">${fmtDate(groups[k][0].commit.author.date)}</div>`;
+    groups[k].forEach(c=>{ html += commitCard(c); });
+  });
+  list.innerHTML = html;
+}
+
+function commitCard(c) {
+  const sha   = c.sha;
+  const msg   = c.commit.message.split('\n')[0];
+  const auth  = c.commit.author.name;
+  const date  = c.commit.author.date;
+  const type  = getDisplayType(c);
+  const cached= commitAnalysisCache.get(sha);
+  const risk  = cached ? riskCls(cached.risk_level) : '';
+  const qdot  = cached
+    ? (cached.quality.startsWith('Good') ? 'good' : 'needs')
+    : (expandedCommits.has(sha) ? 'spin-dot' : '');
+  const isExp = expandedCommits.has(sha);
+  const secWarn = settings.securityScan && commitDetailCache.has(sha) && hasSecurityTouch(commitDetailCache.get(sha).files||[]);
+  return `<div class="commit-card ${risk} ${isExp?'expanded':''}" id="cc-${sha}">
+    <div class="commit-header" onclick="toggleCommit('${sha}')">
+      <div class="commit-msg">${esc(msg)}</div>
+      <div class="commit-meta">
+        ${secWarn?'<span style="color:var(--red);font-size:12px" title="Touches security files">🔒</span>':''}
+        <span class="tbadge ${typeCls(type)}">${esc(type)}</span>
+        <span class="sha-pill">${sha.slice(0,7)}</span>
+        <div class="av" style="background:${avatarColor(auth)}">${avatarInitial(auth)}</div>
+        <span class="author-n">${esc(auth)}</span>
+        <span class="tago">${timeAgo(date)}</span>
+        <div class="qdot ${qdot}"></div>
+      </div>
+    </div>
+    ${isExp ? expandedCommitHtml(sha) : ''}
+  </div>`;
+}
+
+function expandedCommitHtml(sha) {
+  const cached = commitAnalysisCache.get(sha);
+  const detail = commitDetailCache.get(sha);
+  const files  = detail ? detail.files||[] : [];
+  if (!cached && expandedCommits.has(sha)) {
+    return `<div class="commit-body"><div class="ag">
+      <div class="skeleton" style="height:100px"></div>
+      <div class="skeleton" style="height:100px"></div>
+    </div></div>`;
+  }
+  if (!cached) return '';
+  const sugg = cached.suggested_message;
+  const origMsg = commits.find(c=>c.sha===sha)?.commit.message.split('\n')[0]||'';
+  const showSugg = settings.showSuggested && sugg && sugg !== origMsg;
+  return `<div class="commit-body">
+    <div class="ag">
+      <div class="abox"><div class="albl">Plain English</div><div class="acontent">${fmt(cached.plain_summary)}</div></div>
+      <div class="abox"><div class="albl">Technical Summary</div><div class="acontent">${fmt(cached.technical_summary)}</div></div>
+      ${showSugg?`<div class="abox fw"><div class="albl">Suggested Message</div><div class="sugg-msg">${esc(sugg)}</div><div class="orig-msg">Original: ${esc(origMsg)}</div></div>`:''}
+      <div class="abox fw"><div class="albl">Risk Level</div><div class="acontent ${riskColor(cached.risk_level)}">${esc(cached.risk_level)}</div></div>
+    </div>
+    ${files.length?`<div class="chips">
+      <span class="chip">${files.length} file${files.length!==1?'s':''} changed</span>
+      <span class="chip add">+${files.reduce((s,f)=>s+f.additions,0)}</span>
+      <span class="chip del">-${files.reduce((s,f)=>s+f.deletions,0)}</span>
+    </div>`:''}
+    <div class="act-row">
+      <button class="abtn" onclick="copySHA('${sha}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy SHA
+      </button>
+      <a class="abtn" href="https://github.com/AbhishekSnap/test-commit-analyser/commit/${sha}" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>View Diff
+      </a>
+      <button class="abtn" onclick="bookmark('${sha}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Bookmark
+      </button>
+    </div>
+  </div>`;
+}
+
+async function toggleCommit(sha) {
+  if (expandedCommits.has(sha)) {
+    expandedCommits.delete(sha);
+  } else {
+    expandedCommits.add(sha);
+    renderCommitList();
+    if (settings.autoAnalyze && !commitAnalysisCache.has(sha)) {
+      try {
+        await fetchCommitDetail(sha);
+        renderCommitList();
+        await analyzeCommit(sha);
+        renderCommitList();
+      } catch(e) {
+        toast('❌','Analysis failed', e.message||'Unknown error');
+        renderCommitList();
+      }
+    }
+    return;
+  }
+  renderCommitList();
+}
+
+// ── RENDERING: PRs ───────────────────────────────────────────────────────────
+function renderPRList() {
+  const el = document.getElementById('pr-list');
+  let filtered = prs.filter(p=>{
+    if (prFilter==='Open'   && p.state!=='open') return false;
+    if (prFilter==='Merged' && !p.merged_at)     return false;
+    if (prFilter==='Closed' && (p.state!=='closed'||p.merged_at)) return false;
+    return true;
+  });
+  if (!filtered.length) { el.innerHTML='<div class="empty-state"><h3>No pull requests</h3><p>Try a different filter.</p></div>'; return; }
+  el.innerHTML = filtered.map(p=>prCard(p)).join('');
+  updatePRStats();
+}
+
+function prStatusLabel(p) {
+  if (p.merged_at) return '<span class="sbadge s-merged">Merged</span>';
+  if (p.state==='open') return '<span class="sbadge s-open">Open</span>';
+  return '<span class="sbadge s-closed">Closed</span>';
+}
+
+function prCard(p) {
+  const isExp = expandedPRs.has(p.number);
+  const cached= prAnalysisCache.get(p.number);
+  return `<div class="pr-card ${isExp?'expanded':''}" id="prc-${p.number}">
+    <div class="pr-header" onclick="togglePR(${p.number})">
+      <span class="pr-num">#${p.number}</span>
+      <span class="pr-title">${esc(p.title)}</span>
+      <div class="pr-meta">
+        <div class="av" style="background:${avatarColor(p.user.login)}">${avatarInitial(p.user.login)}</div>
+        <span class="author-n">${esc(p.user.login)}</span>
+        <span class="branch-lbl">→ ${esc(p.base.ref)}</span>
+        ${prStatusLabel(p)}
+        <span class="tago">${timeAgo(p.created_at)}</span>
+      </div>
+    </div>
+    ${isExp ? expandedPRHtml(p) : ''}
+  </div>`;
+}
+
+function expandedPRHtml(p) {
+  const num    = p.number;
+  const cached = prAnalysisCache.get(num);
+  const files  = prFilesCache.get(num)||[];
+  const reviews= prReviewsCache.get(num)||[];
+  if (!cached && expandedPRs.has(num)) {
+    return `<div class="pr-body"><div class="ag">
+      <div class="skeleton" style="height:90px"></div>
+      <div class="skeleton" style="height:90px"></div>
+    </div></div>`;
+  }
+  if (!cached) return '';
+  const sentiment = cached.review_sentiment||'';
+  let revCls = 'rev-none';
+  if (sentiment.startsWith('Approved')) revCls='rev-approved';
+  else if (sentiment.startsWith('Changes')) revCls='rev-changes';
+  else if (sentiment.startsWith('Mixed'))  revCls='rev-mixed';
+  const showFiles = files.slice(0,8);
+  const moreFiles = files.length > 8;
+  return `<div class="pr-body">
+    <div class="ag">
+      <div class="abox"><div class="albl">What This PR Does</div><div class="acontent">${fmt(cached.summary)}</div></div>
+      <div class="abox"><div class="albl">Technical Impact</div><div class="acontent">${fmt(cached.technical_impact)}</div></div>
+      <div class="abox"><div class="albl">Review Status</div>
+        <span class="rev-badge ${revCls}">${esc(sentiment.split('—')[0].trim())}</span>
+        <div class="acontent" style="margin-top:6px">${esc((sentiment.split('—')[1]||'').trim())}</div>
+      </div>
+      <div class="abox"><div class="albl">PR Quality</div><div class="acontent">${esc(cached.quality)}</div></div>
+    </div>
+    ${files.length?`<div style="margin-top:14px">
+      <div class="albl" style="margin-bottom:8px">Files Changed</div>
+      <div class="pr-files-list">
+        ${showFiles.map(f=>`<div class="pr-file-row"><span class="pr-fname">${esc(f.filename)}</span><span class="fadd">+${f.additions}</span><span class="fdel">-${f.deletions}</span></div>`).join('')}
+        ${moreFiles?`<div style="font-size:11px;color:var(--text3);padding:6px 0">+${files.length-8} more files</div>`:''}
+      </div>
+    </div>`:''}
+    <div class="act-row">
+      <a class="abtn" href="https://github.com/AbhishekSnap/test-commit-analyser/pull/${num}" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>View PR on GitHub
+      </a>
+      <button class="abtn" onclick="copyPRLink(${num})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Copy PR Link
+      </button>
+    </div>
+  </div>`;
+}
+
+async function togglePR(num) {
+  const pr = prs.find(p=>p.number===num);
+  if (!pr) return;
+  if (expandedPRs.has(num)) { expandedPRs.delete(num); }
+  else {
+    expandedPRs.add(num);
+    renderPRList();
+    if (!prAnalysisCache.has(num)) {
+      try {
+        await Promise.all([fetchPRFiles(num), fetchPRReviews(num)]);
+        renderPRList();
+        await analyzePR(num, pr);
+        renderPRList();
+      } catch(e) {
+        toast('❌','PR Analysis failed', e.message||'Unknown error');
+        renderPRList();
+      }
+      return;
+    }
+  }
+  renderPRList();
+}
+
+// ── STATS ────────────────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('s-total').textContent   = commits.length;
+  const authors = new Set(commits.map(c=>c.commit.author.name));
+  document.getElementById('s-contrib').textContent = authors.size;
+  const analyses = [...commitAnalysisCache.values()];
+  const high     = analyses.filter(a=>a.risk_level?.toLowerCase().startsWith('high')).length;
+  const goodPct  = analyses.length ? Math.round(analyses.filter(a=>a.quality?.startsWith('Good')).length/analyses.length*100) : 0;
+  document.getElementById('s-risk').textContent    = high||'—';
+  document.getElementById('s-quality').textContent = analyses.length ? goodPct+'%' : '—';
+}
+
+function updatePRStats() {
+  const open   = prs.filter(p=>p.state==='open').length;
+  const merged = prs.filter(p=>!!p.merged_at).length;
+  const ttms   = prs.filter(p=>p.merged_at).map(p=>(new Date(p.merged_at)-new Date(p.created_at))/3600000);
+  const avgTTM = ttms.length ? Math.round(ttms.reduce((a,b)=>a+b,0)/ttms.length) : null;
+  document.getElementById('pr-open').textContent   = open;
+  document.getElementById('pr-merged').textContent  = merged;
+  document.getElementById('pr-ttm').textContent     = avgTTM!=null ? avgTTM+'h' : '—';
+}
+
+// ── RIGHT PANELS ─────────────────────────────────────────────────────────────
+function renderRightPanels() {
+  renderTypeChart();
+  renderRiskDonut();
+  renderHeatmap();
+  renderTopContribs();
+}
+
+function renderTypeChart() {
+  const el = document.getElementById('type-chart');
+  if (!commits.length) { el.innerHTML=''; return; }
+  const counts = {};
+  commits.forEach(c=>{ const t=getDisplayType(c); counts[t]=(counts[t]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const max = sorted[0][1];
+  const colors = {Feature:'var(--teal)','Bug Fix':'var(--red)',Refactor:'var(--gold)',Chore:'var(--text3)',Docs:'var(--amber)',Tests:'var(--teal)',Performance:'var(--amber)',Security:'var(--red)'};
+  el.innerHTML = sorted.map(([t,n])=>`
+    <div class="bar-row">
+      <span class="bar-label">${esc(t)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/max*100)}%;background:${colors[t]||'var(--text3)'}"></div></div>
+      <span class="bar-cnt">${n}</span>
+    </div>`).join('');
+}
+
+function renderRiskDonut() {
+  const el = document.getElementById('risk-donut');
+  const analyses = [...commitAnalysisCache.values()];
+  const total = analyses.length;
+  if (!total) { el.innerHTML='<div style="text-align:center;color:var(--text3);font-size:12px;padding:20px">Expand commits<br>to generate analysis</div>'; return; }
+  const low  = analyses.filter(a=>(a.risk_level||'').toLowerCase().startsWith('low')).length;
+  const med  = analyses.filter(a=>(a.risk_level||'').toLowerCase().startsWith('med')).length;
+  const high = total - low - med;
+  const pct  = Math.round(low/total*100);
+  // Build SVG donut
+  const cx=70,cy=70,r=50,sw=18;
+  function arc(start,end,color) {
+    if (end-start>=360) end=359.99;
+    const s=polarXY(cx,cy,r,start), e=polarXY(cx,cy,r,end);
+    const lg=end-start>180?1:0;
+    return `<path d="M${s.x},${s.y} A${r},${r} 0 ${lg} 1 ${e.x},${e.y}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="butt"/>`;
+  }
+  function polarXY(cx,cy,r,deg) {
+    const a=(deg-90)*Math.PI/180;
+    return {x:+(cx+r*Math.cos(a)).toFixed(2),y:+(cy+r*Math.sin(a)).toFixed(2)};
+  }
+  const segs = [];
+  let angle = 0;
+  if (low)  { const span=low/total*360;  segs.push(arc(angle,angle+span,'var(--teal)'));  angle+=span; }
+  if (med)  { const span=med/total*360;  segs.push(arc(angle,angle+span,'var(--amber)')); angle+=span; }
+  if (high) { const span=high/total*360; segs.push(arc(angle,angle+span,'var(--red)'));   }
+  el.innerHTML = `
+    <svg viewBox="0 0 140 140" style="width:140px;height:140px">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--s3)" stroke-width="${sw}"/>
+      ${segs.join('')}
+      <text x="${cx}" y="${cy-6}" text-anchor="middle" class="donut-center">${pct}%</text>
+      <text x="${cx}" y="${cy+12}" text-anchor="middle" class="donut-center-sub">Low Risk</text>
+    </svg>
+    <div class="donut-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--teal)"></div>Low (${low})</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div>Med (${med})</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>High (${high})</div>
+    </div>`;
+}
+
+function renderHeatmap() {
+  const labEl  = document.getElementById('hm-labels');
+  const gridEl = document.getElementById('heatmap');
+  const now    = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const daysInMonth= new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  document.getElementById('hm-month').textContent = now.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  // count commits per day
+  const dayCounts = {};
+  commits.forEach(c=>{ const k=dayKey(c.commit.author.date); dayCounts[k]=(dayCounts[k]||0)+1; });
+  const maxC = Math.max(1,...Object.values(dayCounts));
+  labEl.innerHTML = ['M','T','W','T','F','S','S'].map(d=>`<div class="hm-lbl">${d}</div>`).join('');
+  // offset for day of week
+  const startDow = (monthStart.getDay()+6)%7; // Mon=0
+  let cells = '';
+  for (let i=0;i<startDow;i++) cells += `<div class="hm-cell" style="opacity:0"></div>`;
+  for (let d=1;d<=daysInMonth;d++) {
+    const k = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const n = dayCounts[k]||0;
+    const intensity = n===0?0:Math.min(1,0.2+n/maxC*0.8);
+    const bg = n===0?'var(--s3)':`rgba(45,212,191,${intensity})`;
+    cells += `<div class="hm-cell" style="background:${bg}" data-tip="${n} commit${n!==1?'s':''} on ${d} ${now.toLocaleDateString('en-GB',{month:'short'})}"></div>`;
+  }
+  gridEl.innerHTML = cells;
+}
+
+function renderTopContribs() {
+  const el = document.getElementById('top-contribs');
+  const counts = {};
+  commits.forEach(c=>{ const a=c.commit.author.name; counts[a]=(counts[a]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const max = sorted[0]?.[1]||1;
+  el.innerHTML = sorted.map(([name,n])=>`
+    <div class="contrib-row" onclick="setFilterByAuthor('${esc(name)}')">
+      <div class="av" style="background:${avatarColor(name)}">${avatarInitial(name)}</div>
+      <span class="cname">${esc(name)}</span>
+      <span class="ccnt">${n}</span>
+      <div class="cbar"><div class="cbar-fill" style="width:${Math.round(n/max*100)}%"></div></div>
+    </div>`).join('');
+}
+
+// ── INSIGHTS ─────────────────────────────────────────────────────────────────
+function renderInsights() {
+  renderQualityChart();
+  renderDOWChart();
+  renderContribTable();
+}
+
+function renderQualityChart() {
+  const el = document.getElementById('quality-chart');
+  const analyses = [...commitAnalysisCache.entries()];
+  if (analyses.length < 2) { el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:30px">Expand commits to build quality trend data.</div>'; return; }
+  // bucket by day for last 14 days
+  const days = [];
+  for (let i=13;i>=0;i--) {
+    const d=new Date(); d.setDate(d.getDate()-i);
+    days.push(dayKey(d));
+  }
+  const byDay = {};
+  days.forEach(d=>{ byDay[d]={good:0,total:0}; });
+  analyses.forEach(([sha,a])=>{
+    const c=commits.find(x=>x.sha===sha);
+    if(!c)return;
+    const k=dayKey(c.commit.author.date);
+    if(byDay[k]===undefined)return;
+    byDay[k].total++;
+    if(a.quality?.startsWith('Good')) byDay[k].good++;
+  });
+  const pts = days.map(d=>byDay[d].total>0?Math.round(byDay[d].good/byDay[d].total*100):null);
+  svgLineChart(el, pts, days);
+}
+
+function svgLineChart(el, pts, labels) {
+  const W=260,H=100,PAD=20;
+  const valid=pts.filter(p=>p!==null);
+  if(!valid.length){el.innerHTML='';return;}
+  const minV=0,maxV=100;
+  function x(i){return PAD+(i/(pts.length-1))*(W-PAD*2)}
+  function y(v){return H-PAD-(v-minV)/(maxV-minV)*(H-PAD*2)}
+  const pointPairs=pts.map((p,i)=>p!==null?[x(i),y(p)]:null).filter(Boolean);
+  const polyline=pointPairs.map(p=>p.join(',')).join(' ');
+  const area=`M${pointPairs[0][0]},${H-PAD} `+pointPairs.map(p=>`L${p[0]},${p[1]}`).join(' ')+` L${pointPairs[pointPairs.length-1][0]},${H-PAD} Z`;
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;overflow:visible">
+    <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--gold)" stop-opacity=".3"/>
+      <stop offset="100%" stop-color="var(--gold)" stop-opacity="0"/>
+    </linearGradient></defs>
+    <line x1="${PAD}" y1="${y(50)}" x2="${W-PAD}" y2="${y(50)}" stroke="var(--border)" stroke-dasharray="3"/>
+    <path d="${area}" fill="url(#lg)"/>
+    <polyline points="${polyline}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round"/>
+    ${pointPairs.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="var(--gold)"/>`).join('')}
+    <text x="${PAD}" y="${H}" class="axis">${labels[0]?.slice(5)}</text>
+    <text x="${W-PAD}" y="${H}" text-anchor="end" class="axis">${labels[labels.length-1]?.slice(5)}</text>
+    <text x="${PAD}" y="${y(100)+4}" class="axis">100%</text>
+    <text x="${PAD}" y="${y(0)+4}" class="axis">0%</text>
+  </svg>`;
+}
+
+function renderDOWChart() {
+  const el = document.getElementById('dow-chart');
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const counts=[0,0,0,0,0,0,0];
+  commits.forEach(c=>{
+    const dow=(new Date(c.commit.author.date).getDay()+6)%7;
+    counts[dow]++;
+  });
+  const max=Math.max(1,...counts);
+  const peakIdx=counts.indexOf(Math.max(...counts));
+  const W=260,H=100,PAD=20,BW=24,GAP=8;
+  const totalW=days.length*(BW+GAP)-GAP;
+  const startX=(W-totalW)/2;
+  const bars=days.map((d,i)=>{
+    const bh=Math.round(counts[i]/max*(H-PAD*2));
+    const col=i===peakIdx?'var(--gold)':'var(--gold-dim)';
+    const bx=startX+i*(BW+GAP);
+    const by=H-PAD-bh;
+    return `<rect x="${bx}" y="${by}" width="${BW}" height="${bh}" rx="3" fill="${col}"/>
+      <text x="${bx+BW/2}" y="${H-4}" text-anchor="middle" class="axis">${d}</text>
+      ${counts[i]?`<text x="${bx+BW/2}" y="${by-3}" text-anchor="middle" class="axis" style="fill:var(--text2)">${counts[i]}</text>`:''}`;
+  }).join('');
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%">${bars}</svg>`;
+}
+
+function renderContribTable() {
+  const tbody = document.getElementById('contrib-tbody');
+  const data = {};
+  commits.forEach(c=>{
+    const a=c.commit.author.name;
+    if(!data[a]) data[a]={name:a,commits:0,additions:0,deletions:0,recent:c.commit.author.date};
+    data[a].commits++;
+    if(new Date(c.commit.author.date)>new Date(data[a].recent)) data[a].recent=c.commit.author.date;
+  });
+  // merge detail data
+  for(const [sha,d] of commitDetailCache.entries()) {
+    const a=d.commit.author.name;
+    if(data[a]) { data[a].additions+=(d.stats?.additions||0); data[a].deletions+=(d.stats?.deletions||0); }
+  }
+  let rows=Object.values(data);
+  rows.sort((a,b)=>{ const v=contribSort.dir; return (a[contribSort.key]>b[contribSort.key]?1:-1)*v; });
+  tbody.innerHTML=rows.map(r=>`<tr>
+    <td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:${avatarColor(r.name)}">${avatarInitial(r.name)}</div>${esc(r.name)}</div></td>
+    <td style="font-family:var(--mono)">${r.commits}</td>
+    <td style="color:#4ADE80;font-family:var(--mono)">${r.additions?'+'+r.additions:'—'}</td>
+    <td style="color:var(--red);font-family:var(--mono)">${r.deletions?'-'+r.deletions:'—'}</td>
+    <td>${timeAgo(r.recent)}</td>
+  </tr>`).join('');
+}
+
+function sortContribs(key) {
+  if(contribSort.key===key) contribSort.dir*=-1;
+  else { contribSort.key=key; contribSort.dir=-1; }
+  renderContribTable();
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+const VIEW_META = {
+  commits:  {title:'Commits',       badge:'AI Analysis'},
+  prs:      {title:'Pull Requests', badge:'Code Review'},
+  insights: {title:'Insights',      badge:'Analytics'},
+  settings: {title:'Settings',      badge:'Config'},
+};
+function switchView(v) {
+  currentView = v;
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el=>{ if(el.textContent.trim().toLowerCase().startsWith(v.slice(0,4))) el.classList.add('active'); });
+  const meta = VIEW_META[v]||{title:v,badge:''};
+  document.getElementById('topbar-title').textContent = meta.title;
+  document.getElementById('topbar-badge').textContent = meta.badge;
+  if(v==='insights') renderInsights();
+  if(v==='settings') { document.getElementById('api-key-inp').value=getKey()?'••••••••••••':''; updateCacheStats(); }
+}
+
+// ── ACTIONS ──────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  const btn = document.getElementById('theme-btn');
+  btn.innerHTML = isLight
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Dark`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> Light`;
+  toast('🎨','Theme changed', isLight?'Switched to light mode':'Switched to dark mode');
+}
+
+function openConnectModal() { document.getElementById('connect-modal').classList.add('open'); }
+function closeModal(e) { if(e.target===e.currentTarget) e.currentTarget.classList.remove('open'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open')); });
+
+function copySetup() {
+  const txt = document.querySelector('#connect-modal pre').textContent;
+  navigator.clipboard.writeText(txt).then(()=>toast('✅','Copied','Setup snippet copied to clipboard'));
+  document.getElementById('connect-modal').classList.remove('open');
+}
+
+function copySHA(sha) { navigator.clipboard.writeText(sha).then(()=>toast('✅','Copied',sha)); }
+function copyPRLink(n) { navigator.clipboard.writeText(`https://github.com/AbhishekSnap/test-commit-analyser/pull/${n}`).then(()=>toast('✅','Copied','PR link copied')); }
+function bookmark(sha) {
+  const bms = JSON.parse(sessionStorage.getItem('gcrmcp_bm')||'[]');
+  if(!bms.includes(sha)) bms.push(sha);
+  sessionStorage.setItem('gcrmcp_bm', JSON.stringify(bms));
+  toast('🔖','Bookmarked',sha.slice(0,7)+' saved this session');
+}
+
+function setFilterByAuthor(name) {
+  document.getElementById('commit-search').value = name;
+  searchQ = name.toLowerCase();
+  switchView('commits');
+  renderCommitList();
+}
+
+function saveApiKey() {
+  const val = document.getElementById('api-key-inp').value.trim();
+  if(!val) { toast('⚠️','Empty key','Enter your Anthropic API key first'); return; }
+  sessionStorage.setItem('gcrmcp_api_key', val);
+  document.getElementById('api-key-inp').value = '••••••••••••';
+  toast('✅','Key saved','API key stored for this session');
+}
+
+function savePref() {
+  settings.autoAnalyze = document.getElementById('pref-auto').checked;
+  settings.securityScan= document.getElementById('pref-sec').checked;
+  settings.showSuggested=document.getElementById('pref-sugg').checked;
+}
+
+function updateCacheStats() {
+  document.getElementById('cache-commits').textContent = commitAnalysisCache.size;
+  document.getElementById('cache-prs').textContent     = prAnalysisCache.size;
+}
+
+function clearCache() {
+  commitAnalysisCache.clear(); prAnalysisCache.clear(); commitDetailCache.clear();
+  prFilesCache.clear(); prReviewsCache.clear(); expandedCommits.clear(); expandedPRs.clear();
+  updateCacheStats();
+  renderCommitList(); renderRightPanels();
+  toast('🗑️','Cache cleared','All analysis data removed');
+}
+
+function disconnectRepo() {
+  clearCache(); commits=[]; prs=[];
+  renderCommitList(); renderPRList(); renderRightPanels(); updateStats(); updatePRStats();
+  document.getElementById('last-fetched').textContent='—';
+  toast('🔌','Disconnected','All data cleared');
+}
+
+function exportCSV() {
+  if(!commits.length){toast('⚠️','No data','Load commits first');return;}
+  const rows=[['SHA','Message','Author','Date','Change Type','Quality','Risk Level','Files','Additions','Deletions']];
+  commits.forEach(c=>{
+    const a=commitAnalysisCache.get(c.sha);
+    const d=commitDetailCache.get(c.sha);
+    rows.push([
+      c.sha.slice(0,7),
+      `"${(c.commit.message.split('\n')[0]||'').replace(/"/g,'""')}"`,
+      c.commit.author.name,
+      c.commit.author.date,
+      a?.change_type||detectType(c.commit.message),
+      `"${(a?.quality||'').replace(/"/g,'""')}"`,
+      a?.risk_level||'',
+      d?.files?.length||'',
+      d?.stats?.additions||'',
+      d?.stats?.deletions||'',
+    ]);
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url;
+  a.download=`commit-log-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('⬇️','Export ready',`${commits.length} commits exported`);
+}
+
+function downloadTypeCSV() {
+  const counts={};
+  commits.forEach(c=>{const t=getDisplayType(c);counts[t]=(counts[t]||0)+1;});
+  const csv='Type,Count\n'+Object.entries(counts).map(([t,n])=>`${t},${n}`).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='commit-types.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function refresh() {
+  const btn=document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  try {
+    await Promise.all([fetchCommits(), fetchPRs()]);
+    lastFetchedAt=new Date();
+    document.getElementById('last-fetched').textContent=timeAgo(lastFetchedAt);
+    renderCommitList(); renderPRList(); renderRightPanels(); updateStats(); updatePRStats();
+    toast('✅','Refreshed',`${commits.length} commits and ${prs.length} PRs loaded`);
+  } catch(e) {
+    if(e.message!=='rate-limit'&&e.message!=='not-found') toast('❌','Fetch failed',e.message);
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    await Promise.all([fetchCommits(), fetchPRs()]);
+    lastFetchedAt=new Date();
+    document.getElementById('last-fetched').textContent=timeAgo(lastFetchedAt);
+  } catch(e) { /* errors toasted inside */ }
+  updateStats(); updatePRStats();
+  renderCommitList(); renderPRList(); renderRightPanels();
+  // fade out skeleton
+  const skel=document.getElementById('skel');
+  skel.style.opacity='0';
+  setTimeout(()=>skel.remove(),300);
+}
+init();
+</script>
+</body>
+</html>
