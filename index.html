@@ -580,7 +580,7 @@ GITHUB_TOKEN:      auto-provided by GitHub
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 const API = 'https://api.github.com/repos/AbhishekSnap/test-commit-analyser';
 const CLAUDE = 'https://api.anthropic.com/v1/messages';
-const MODEL  = 'claude-sonnet-4-20250514';
+const MODEL  = 'claude-haiku-4-5-20251001';
 const GH_H   = { 'Accept': 'application/vnd.github+json' };
 
 // ── STATE ────────────────────────────────────────────────────────────────────
@@ -710,7 +710,7 @@ async function analyzeCommit(sha) {
   const sys = `You are a senior software engineer reviewing a git commit.\nAnalyse the provided commit data and return a JSON object with exactly these six keys:\n  "plain_summary": 2-3 sentence plain-English description of what changed (non-technical, suitable for a project manager)\n  "technical_summary": detailed per-file technical breakdown. For EACH file changed, produce a section: "**filename.py**\\n- FunctionOrClass: what specifically changed". Reference exact function names, class names, decorators, and constants.\n  "change_type": exactly one of: Bug Fix | Feature | Refactor | Chore | Docs | Tests | Performance | Security\n  "quality": one-line starting with "Good" or "Needs improvement", em-dash, short reason\n  "risk_level": one of: Low | Medium | High — em-dash and one-line reason\n  "suggested_message": return original if clear and follows conventional commits; otherwise return improved type(scope): description\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
   const res = await fetch(CLAUDE, {
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-allow-browser':'true'},
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body: JSON.stringify({model:MODEL,max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
   });
   if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.error?.message||'Claude API error'); }
@@ -732,7 +732,7 @@ async function analyzePR(num, pr) {
   const sys = `You are a senior software engineer reviewing a GitHub pull request.\nReturn a JSON object with exactly four keys:\n  "summary": 2-3 sentence plain-English description suitable for a non-technical stakeholder.\n  "technical_impact": per-file breakdown. For EACH file: "**filename.py**\\n- FunctionOrClass: what changed". Be precise.\n  "review_sentiment": one of: Approved | Changes Requested | Mixed | No Reviews Yet — em-dash and one-line summary.\n  "quality": starts with "Good" or "Needs improvement", em-dash, short reason.\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
   const res = await fetch(CLAUDE, {
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-allow-browser':'true'},
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body: JSON.stringify({model:MODEL,max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
   });
   if (!res.ok) throw new Error('Claude API error');
