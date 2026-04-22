@@ -305,11 +305,110 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 /* SVG CHART */
 text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
+
+/* SCREENS (landing + repos overlay) */
+.screen-overlay{position:fixed;inset:0;z-index:500;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;transition:background .3s}
+.screen-overlay.active{display:flex}
+
+/* LANDING */
+.landing-card{background:var(--s1);border:1px solid var(--border2);border-radius:20px;padding:48px 40px;max-width:440px;width:90%;text-align:center}
+.landing-logo{font-size:26px;font-weight:700;color:var(--text);margin-bottom:6px}
+.landing-logo span{color:var(--gold)}
+.landing-sub{font-size:13px;color:var(--text3);margin-bottom:28px}
+.landing-features{display:flex;flex-direction:column;gap:10px;margin-bottom:28px;text-align:left}
+.lf-row{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text2)}
+.lf-icon{width:32px;height:32px;border-radius:8px;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.btn-connect{width:100%;padding:13px;border-radius:var(--r-btn);background:var(--gold);border:none;color:#080A0D;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s}
+.btn-connect:hover{opacity:.9}
+.btn-connect:disabled{opacity:.5;cursor:not-allowed}
+.landing-note{font-size:11px;color:var(--text3);margin-top:14px;line-height:1.6}
+.device-box{background:var(--s2);border:1px solid var(--border2);border-radius:12px;padding:24px;margin:16px 0}
+.device-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.device-url{font-size:12px;color:var(--text2);margin-bottom:12px}
+.device-url a{color:var(--teal);text-decoration:none}
+.device-url a:hover{text-decoration:underline}
+.device-code-display{font-family:var(--mono);font-size:34px;font-weight:600;color:var(--gold);letter-spacing:6px}
+.poll-status{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px}
+
+/* REPOS SCREEN */
+#screen-repos{justify-content:flex-start;align-items:stretch}
+.repos-header{background:var(--s1);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.repos-user{display:flex;align-items:center;gap:10px}
+.repos-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border2)}
+.repos-avatar-placeholder{width:32px;height:32px;border-radius:50%;background:var(--gold-dim);border:2px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:13px;font-weight:700;flex-shrink:0}
+.repos-login{font-size:14px;font-weight:600;color:var(--text)}
+.repos-body{flex:1;overflow-y:auto;padding:24px 28px}
+.repos-search-row{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.repos-search-row input{flex:1;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-btn);padding:10px 14px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:border-color .15s}
+.repos-search-row input::placeholder{color:var(--text3)}
+.repos-search-row input:focus{border-color:var(--border2)}
+.repos-count{font-size:12px;color:var(--text3);white-space:nowrap;font-family:var(--mono)}
+.repo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.repo-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);padding:18px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;flex-direction:column;gap:8px}
+.repo-card:hover{border-color:var(--border2);background:var(--s2)}
+.rc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.rc-name{font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc-badges{display:flex;gap:5px;flex-shrink:0;align-items:center}
+.rc-badge{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:4px}
+.rc-private{background:var(--s3);color:var(--text3)}
+.rc-fork{background:var(--teal-dim);color:var(--teal)}
+.rc-desc{font-size:12px;color:var(--text3);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:18px}
+.rc-meta{display:flex;align-items:center;gap:12px;margin-top:2px}
+.rc-lang{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.lang-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--text3)}
+.rc-stars{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text2)}
+.rc-time{font-size:11px;color:var(--text3);margin-left:auto}
 </style>
 </head>
 <body>
 <div class="blob blob-1"></div>
 <div class="blob blob-2"></div>
+
+<!-- LANDING SCREEN -->
+<div id="screen-landing" class="screen-overlay active">
+  <div class="landing-card">
+    <div class="landing-logo">Git <span>Digest</span></div>
+    <div class="landing-sub">AI-powered repository intelligence</div>
+    <div class="landing-features">
+      <div class="lf-row"><div class="lf-icon">🔍</div><span>Commit analysis with risk scoring &amp; suggested messages</span></div>
+      <div class="lf-row"><div class="lf-icon">🔀</div><span>PR review sentiment, CI status, and quality metrics</span></div>
+      <div class="lf-row"><div class="lf-icon">📊</div><span>Insights, contributor stats, and activity heatmaps</span></div>
+    </div>
+    <div id="landing-connect-ui">
+      <button class="btn-connect" onclick="connectGitHub()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+        Connect with GitHub
+      </button>
+    </div>
+    <div id="landing-device-ui" style="display:none">
+      <div class="device-box">
+        <div class="device-label">Visit this URL and enter the code</div>
+        <div class="device-url"><a href="https://github.com/login/device" target="_blank">github.com/login/device</a></div>
+        <div class="device-code-display" id="device-code-text">——</div>
+      </div>
+      <div class="poll-status"><div class="live-dot"></div><span id="poll-status-text">Waiting for authorisation…</span></div>
+    </div>
+    <div class="landing-note">Your token is stored in sessionStorage only — never sent to any server.<br>Each visitor connects their own GitHub account.</div>
+  </div>
+</div>
+
+<!-- REPOS SCREEN -->
+<div id="screen-repos" class="screen-overlay">
+  <div class="repos-header">
+    <div class="repos-user">
+      <div class="repos-avatar-placeholder" id="repos-avatar">?</div>
+      <span class="repos-login" id="repos-login">—</span>
+    </div>
+    <button class="btn" onclick="disconnect()" style="color:var(--red);border-color:var(--red-dim)">Disconnect</button>
+  </div>
+  <div class="repos-body">
+    <div class="repos-search-row">
+      <input type="text" id="repo-search" placeholder="Search repositories…" oninput="filterRepos()">
+      <span class="repos-count" id="repos-count"></span>
+    </div>
+    <div class="repo-grid" id="repo-grid"></div>
+  </div>
+</div>
 
 <!-- INITIAL SKELETON -->
 <div id="skel">
@@ -359,31 +458,31 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       Settings
     </div>
-    <a class="nav-item" href="https://github.com/AbhishekSnap/test-commit-analyser" target="_blank">
+    <a class="nav-item" id="sidebar-repo-link" href="#" target="_blank">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
       View Repo
     </a>
   </nav>
   <div class="sidebar-footer">
     <div class="live-dot"></div>
-    <a href="https://github.com/AbhishekSnap/test-commit-analyser" target="_blank">AbhishekSnap/test-commit-analyser</a>
+    <a id="sidebar-repo-footer" href="#" target="_blank">—</a>
   </div>
 </aside>
 
 <!-- TOPBAR -->
 <header class="topbar">
   <div class="topbar-left">
+    <button class="btn" onclick="backToRepos()" style="margin-right:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Repos
+    </button>
     <span class="topbar-title" id="topbar-title">Commits</span>
-    <span class="topbar-badge" id="topbar-badge">Live</span>
+    <span class="topbar-badge" id="topbar-badge">AI Analysis</span>
   </div>
   <div class="topbar-right">
     <button class="btn" onclick="toggleTheme()" id="theme-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       Light
-    </button>
-    <button class="btn" onclick="openConnectModal()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-      Connect Repo
     </button>
     <button class="btn" onclick="exportCSV()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -517,13 +616,14 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       </div>
       <div class="sc fw">
         <div class="sc-title">Connected Repository</div>
-        <div class="status-row"><div class="status-dot"></div>AbhishekSnap / test-commit-analyser — Public, no token required</div>
+        <div class="status-row"><div class="status-dot"></div><span id="settings-repo-name">—</span></div>
         <div class="srow" style="margin-top:8px">
           <div class="srow-lbl">Last fetched</div>
           <span id="last-fetched" style="font-size:12px;color:var(--text3);font-family:var(--mono)">—</span>
         </div>
-        <div style="margin-top:12px">
-          <button class="btn" onclick="disconnectRepo()" style="color:var(--red);border-color:var(--red-dim)">Disconnect &amp; Clear All Data</button>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn" onclick="backToRepos()">← Switch Repo</button>
+          <button class="btn" onclick="disconnect()" style="color:var(--red);border-color:var(--red-dim)">Disconnect GitHub</button>
         </div>
       </div>
       <div class="sc fw">
@@ -578,12 +678,22 @@ GITHUB_TOKEN:      auto-provided by GitHub
 
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
-const API = 'https://api.github.com/repos/AbhishekSnap/test-commit-analyser';
-const CLAUDE = 'https://api.anthropic.com/v1/messages';
-const MODEL  = 'claude-haiku-4-5-20251001';
-const GH_H   = { 'Accept': 'application/vnd.github+json' };
+// Replace with your GitHub OAuth App Client ID (Device Flow must be enabled)
+// GitHub → Settings → Developer settings → OAuth Apps → New OAuth App
+const CLIENT_ID = 'YOUR_GITHUB_OAUTH_CLIENT_ID';
+const GH_API    = 'https://api.github.com';
+const CLAUDE    = 'https://api.anthropic.com/v1/messages';
+const MODEL     = 'claude-haiku-4-5-20251001';
+
+const LANG_COLORS = {JavaScript:'#f1e05a',TypeScript:'#3178c6',Python:'#3572A5',Go:'#00ADD8',Rust:'#dea584',Java:'#b07219','C#':'#178600','C++':'#f34b7d',Ruby:'#701516',PHP:'#4F5D95',Swift:'#FA7343',Kotlin:'#A97BFF',Dart:'#00B4AB',Shell:'#89e051',HTML:'#e34c26',CSS:'#563d7c',Vue:'#41b883',Svelte:'#ff3e00'};
 
 // ── STATE ────────────────────────────────────────────────────────────────────
+let ghToken     = sessionStorage.getItem('gd_gh_token') || '';
+let ghUser      = null;
+let currentRepo = null;
+let allRepos    = [];
+let API         = '';
+
 let commits = [], prs = [];
 let currentView = 'commits';
 let searchQ = '', commitFilter = 'All', prFilter = 'All';
@@ -661,12 +771,171 @@ function toast(icon, title, msg) {
 
 // ── GITHUB API ───────────────────────────────────────────────────────────────
 async function ghFetch(url, accept) {
-  const h = accept ? {...GH_H,'Accept':accept} : GH_H;
+  const h = {'Accept': accept||'application/vnd.github+json'};
+  if (ghToken) h['Authorization'] = 'Bearer ' + ghToken;
   const r = await fetch(url, {headers:h});
+  if (r.status===401) { toast('❌','Auth error','GitHub token expired. Please reconnect.'); disconnect(); throw new Error('auth-error'); }
   if (r.status===403||r.status===429) { toast('⚠️','Rate limit','GitHub rate limit reached. Try again in 60s.'); throw new Error('rate-limit'); }
   if (r.status===404) { toast('❌','Not found','Repository not found or no data yet.'); throw new Error('not-found'); }
   if (!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
+}
+
+// ── SCREEN MANAGEMENT ────────────────────────────────────────────────────────
+function showScreen(name) {
+  document.getElementById('screen-landing').classList.toggle('active', name==='landing');
+  document.getElementById('screen-repos').classList.toggle('active', name==='repos');
+}
+
+// ── GITHUB DEVICE FLOW AUTH ──────────────────────────────────────────────────
+async function connectGitHub() {
+  if (CLIENT_ID === 'YOUR_GITHUB_OAUTH_CLIENT_ID') {
+    toast('⚠️','Setup required','Replace CLIENT_ID in the HTML with your GitHub OAuth App Client ID');
+    return;
+  }
+  const connectBtn = document.querySelector('.btn-connect');
+  connectBtn.disabled = true;
+  connectBtn.textContent = 'Requesting code…';
+  try {
+    const res = await fetch('https://github.com/login/device/code', {
+      method:'POST',
+      headers:{'Accept':'application/json','Content-Type':'application/json'},
+      body: JSON.stringify({client_id: CLIENT_ID, scope: 'repo read:user'})
+    });
+    const data = await res.json();
+    if (!data.device_code) throw new Error(data.error_description || 'Failed to get device code');
+    document.getElementById('landing-connect-ui').style.display = 'none';
+    document.getElementById('landing-device-ui').style.display  = 'block';
+    document.getElementById('device-code-text').textContent = data.user_code;
+    pollDeviceToken(data.device_code, data.interval || 5);
+  } catch(e) {
+    connectBtn.disabled = false;
+    connectBtn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg> Connect with GitHub';
+    toast('❌','Connection failed', e.message);
+  }
+}
+
+async function pollDeviceToken(deviceCode, interval) {
+  const poll = async () => {
+    const res = await fetch('https://github.com/login/oauth/access_token', {
+      method:'POST',
+      headers:{'Accept':'application/json','Content-Type':'application/json'},
+      body: JSON.stringify({client_id: CLIENT_ID, device_code: deviceCode, grant_type:'urn:ietf:params:oauth:grant-type:device_code'})
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      ghToken = data.access_token;
+      sessionStorage.setItem('gd_gh_token', ghToken);
+      document.getElementById('poll-status-text').textContent = 'Authorised! Loading your repos…';
+      await afterConnect();
+    } else if (data.error === 'authorization_pending') {
+      setTimeout(poll, interval * 1000);
+    } else if (data.error === 'slow_down') {
+      setTimeout(poll, (interval + 5) * 1000);
+    } else {
+      document.getElementById('landing-device-ui').style.display = 'none';
+      document.getElementById('landing-connect-ui').style.display = 'block';
+      const btn = document.querySelector('.btn-connect');
+      btn.disabled = false;
+      btn.textContent = 'Connect with GitHub';
+      toast('❌','Auth failed', data.error_description || data.error);
+    }
+  };
+  setTimeout(poll, interval * 1000);
+}
+
+async function afterConnect() {
+  try {
+    ghUser = await ghFetch(`${GH_API}/user`);
+    const av = document.getElementById('repos-avatar');
+    if (ghUser.avatar_url) {
+      av.outerHTML = `<img class="repos-avatar" id="repos-avatar" src="${ghUser.avatar_url}" alt="${ghUser.login}">`;
+    } else {
+      av.textContent = (ghUser.login||'?').charAt(0).toUpperCase();
+    }
+    document.getElementById('repos-login').textContent = ghUser.login || '—';
+    showScreen('repos');
+    await fetchAllRepos();
+  } catch(e) {
+    toast('❌','Failed to load user', e.message);
+  }
+}
+
+// ── REPO PICKER ──────────────────────────────────────────────────────────────
+async function fetchAllRepos() {
+  document.getElementById('repo-grid').innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px">Loading repositories…</div>';
+  try {
+    let page = 1, fetched = [];
+    while (true) {
+      const batch = await ghFetch(`${GH_API}/user/repos?sort=pushed&per_page=100&page=${page}&affiliation=owner,collaborator,organization_member`);
+      fetched = fetched.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+    allRepos = fetched;
+    renderRepoGrid(allRepos);
+  } catch(e) {
+    document.getElementById('repo-grid').innerHTML = `<div style="color:var(--red);font-size:13px;padding:20px">Failed to load repos: ${e.message}</div>`;
+  }
+}
+
+function renderRepoGrid(repos) {
+  const q = (document.getElementById('repo-search')?.value||'').toLowerCase();
+  const filtered = q ? repos.filter(r=>r.full_name.toLowerCase().includes(q)||(r.description||'').toLowerCase().includes(q)) : repos;
+  document.getElementById('repos-count').textContent = `${filtered.length} repo${filtered.length!==1?'s':''}`;
+  if (!filtered.length) {
+    document.getElementById('repo-grid').innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px">No repositories found.</div>';
+    return;
+  }
+  document.getElementById('repo-grid').innerHTML = filtered.map(r => {
+    const lang = r.language || '';
+    const dot  = lang ? `<span class="lang-dot" style="background:${LANG_COLORS[lang]||'var(--text3)'}"></span>${esc(lang)}` : '';
+    const stars = r.stargazers_count ? `<span class="rc-stars">★ ${r.stargazers_count}</span>` : '';
+    const badges = [r.private?'<span class="rc-badge rc-private">private</span>':'', r.fork?'<span class="rc-badge rc-fork">fork</span>':''].filter(Boolean).join('');
+    return `<div class="repo-card" onclick="selectRepo(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+      <div class="rc-top"><span class="rc-name">${esc(r.name)}</span><span class="rc-badges">${badges}</span></div>
+      <div class="rc-desc">${esc(r.description||'')}</div>
+      <div class="rc-meta"><span class="rc-lang">${dot?`<span class="lang-dot" style="background:${LANG_COLORS[lang]||'var(--text3)'}"></span>${esc(lang)}`:'—'}</span>${stars}<span class="rc-time">${timeAgo(r.pushed_at||r.updated_at)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function filterRepos() { renderRepoGrid(allRepos); }
+
+function selectRepo(repo) {
+  currentRepo = repo;
+  API = `${GH_API}/repos/${repo.full_name}`;
+  // Clear all caches for fresh data
+  commitAnalysisCache.clear(); prAnalysisCache.clear();
+  commitDetailCache.clear(); prFilesCache.clear(); prReviewsCache.clear();
+  expandedCommits.clear(); expandedPRs.clear();
+  commits = []; prs = [];
+  // Update sidebar links
+  const ghUrl = `https://github.com/${repo.full_name}`;
+  document.getElementById('sidebar-repo-link').href = ghUrl;
+  document.getElementById('sidebar-repo-footer').href = ghUrl;
+  document.getElementById('sidebar-repo-footer').textContent = repo.full_name;
+  document.getElementById('settings-repo-name').textContent = `${repo.full_name} — ${repo.private?'Private':'Public'}`;
+  showScreen('dashboard');
+  init();
+}
+
+function backToRepos() {
+  currentRepo = null; API = '';
+  commits = []; prs = [];
+  showScreen('repos');
+}
+
+function disconnect() {
+  sessionStorage.removeItem('gd_gh_token');
+  ghToken = ''; ghUser = null; currentRepo = null; allRepos = []; API = '';
+  commits = []; prs = [];
+  // Reset landing UI
+  document.getElementById('landing-connect-ui').style.display = 'block';
+  document.getElementById('landing-device-ui').style.display  = 'none';
+  const btn = document.querySelector('.btn-connect');
+  if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg> Connect with GitHub'; }
+  showScreen('landing');
 }
 
 async function fetchCommits() {
@@ -1275,7 +1544,7 @@ function copySetup() {
 }
 
 function copySHA(sha) { navigator.clipboard.writeText(sha).then(()=>toast('✅','Copied',sha)); }
-function copyPRLink(n) { navigator.clipboard.writeText(`https://github.com/AbhishekSnap/test-commit-analyser/pull/${n}`).then(()=>toast('✅','Copied','PR link copied')); }
+function copyPRLink(n) { navigator.clipboard.writeText(`https://github.com/${currentRepo?.full_name||''}/pull/${n}`).then(()=>toast('✅','Copied','PR link copied')); }
 function bookmark(sha) {
   const bms = JSON.parse(sessionStorage.getItem('gcrmcp_bm')||'[]');
   if(!bms.includes(sha)) bms.push(sha);
@@ -1317,12 +1586,7 @@ function clearCache() {
   toast('🗑️','Cache cleared','All analysis data removed');
 }
 
-function disconnectRepo() {
-  clearCache(); commits=[]; prs=[];
-  renderCommitList(); renderPRList(); renderRightPanels(); updateStats(); updatePRStats();
-  document.getElementById('last-fetched').textContent='—';
-  toast('🔌','Disconnected','All data cleared');
-}
+function disconnectRepo() { backToRepos(); toast('🔌','Switched','Back to repo picker'); }
 
 function exportCSV() {
   if(!commits.length){toast('⚠️','No data','Load commits first');return;}
@@ -1378,8 +1642,11 @@ async function refresh() {
   }
 }
 
-// ── INIT ─────────────────────────────────────────────────────────────────────
+// ── INIT (runs after a repo is selected) ─────────────────────────────────────
 async function init() {
+  // Show skeleton while loading
+  const skel = document.getElementById('skel');
+  if (skel) { skel.style.display='flex'; skel.style.opacity='1'; }
   try {
     await Promise.all([fetchCommits(), fetchPRs()]);
     lastFetchedAt=new Date();
@@ -1387,12 +1654,38 @@ async function init() {
   } catch(e) { /* errors toasted inside */ }
   updateStats(); updatePRStats();
   renderCommitList(); renderPRList(); renderRightPanels();
-  // fade out skeleton
-  const skel=document.getElementById('skel');
-  skel.style.opacity='0';
-  setTimeout(()=>skel.remove(),300);
+  if (skel) { skel.style.opacity='0'; setTimeout(()=>{ skel.style.display='none'; skel.style.opacity='1'; },300); }
 }
-init();
+
+// ── PAGE LOAD ─────────────────────────────────────────────────────────────────
+(async function pageLoad() {
+  // Hide skeleton on start — it only shows when a repo is selected
+  const skel = document.getElementById('skel');
+  if (skel) skel.style.display = 'none';
+
+  if (!ghToken) {
+    showScreen('landing');
+    return;
+  }
+  // Token exists — restore user info and go to repos
+  try {
+    ghUser = await ghFetch(`${GH_API}/user`);
+    const av = document.getElementById('repos-avatar');
+    if (ghUser.avatar_url) {
+      av.outerHTML = `<img class="repos-avatar" id="repos-avatar" src="${ghUser.avatar_url}" alt="${ghUser.login}">`;
+    } else {
+      av.textContent = (ghUser.login||'?').charAt(0).toUpperCase();
+    }
+    document.getElementById('repos-login').textContent = ghUser.login || '—';
+    showScreen('repos');
+    await fetchAllRepos();
+  } catch(e) {
+    // Token likely expired
+    sessionStorage.removeItem('gd_gh_token');
+    ghToken = '';
+    showScreen('landing');
+  }
+})();
 </script>
 </body>
 </html>
