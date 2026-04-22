@@ -358,6 +358,27 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
 .lang-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--text3)}
 .rc-stars{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text2)}
 .rc-time{font-size:11px;color:var(--text3);margin-left:auto}
+.rc-stats{display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap}
+.rc-stat{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text3)}
+.rc-stat svg{opacity:.7}
+.rc-issues{color:var(--gold)}
+/* Activity heartbeat */
+.rc-heat{height:3px;border-radius:2px;margin-top:6px;background:var(--border)}
+.rc-heat-bar{height:100%;border-radius:2px;transition:width .3s}
+.heat-hot{background:var(--green)}
+.heat-warm{background:var(--gold)}
+.heat-cool{background:var(--teal)}
+.heat-cold{background:var(--border2)}
+/* Sort + filter bar */
+.repos-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.repos-sort{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-btn);padding:7px 10px;color:var(--text2);font-family:var(--sans);font-size:12px;outline:none;cursor:pointer}
+.repos-sort:focus{border-color:var(--border2)}
+.filter-tabs{display:flex;gap:4px}
+.filter-tab{padding:6px 12px;border-radius:var(--r-btn);font-size:12px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s}
+.filter-tab.active{background:var(--s2);border-color:var(--border2);color:var(--text)}
+/* Recent repos section */
+.repos-section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;margin-top:4px}
+.rc-recent-badge{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(201,168,76,.15);color:var(--gold);font-family:var(--mono)}
 </style>
 </head>
 <body>
@@ -397,7 +418,22 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       <input type="text" id="repo-search" placeholder="Search repositories…" oninput="filterRepos()">
       <span class="repos-count" id="repos-count"></span>
     </div>
-    <div class="repo-grid" id="repo-grid"></div>
+    <div class="repos-toolbar">
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="setRepoFilter('all',this)">All</button>
+        <button class="filter-tab" onclick="setRepoFilter('owner',this)">Mine</button>
+        <button class="filter-tab" onclick="setRepoFilter('fork',this)">Forks</button>
+        <button class="filter-tab" onclick="setRepoFilter('issues',this)">Has Issues</button>
+      </div>
+      <select class="repos-sort" id="repo-sort" onchange="filterRepos()">
+        <option value="pushed">Last pushed</option>
+        <option value="stars">Most stars</option>
+        <option value="forks">Most forks</option>
+        <option value="name">Name A–Z</option>
+        <option value="issues">Open issues</option>
+      </select>
+    </div>
+    <div id="repo-grid"></div>
   </div>
 </div>
 
@@ -849,30 +885,91 @@ async function fetchAllRepos() {
   }
 }
 
+let repoFilter = 'all';
+function setRepoFilter(f, el) {
+  repoFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  filterRepos();
+}
+
+function repoHeatScore(r) {
+  const days = (Date.now() - new Date(r.pushed_at||r.updated_at)) / 86400000;
+  if (days <= 7)  return { cls:'heat-hot',  pct:100, label:'Active this week' };
+  if (days <= 30) return { cls:'heat-warm', pct:70,  label:'Active this month' };
+  if (days <= 90) return { cls:'heat-cool', pct:35,  label:'Active this quarter' };
+  return            { cls:'heat-cold', pct:12,  label:'Inactive' };
+}
+
 function renderRepoGrid(repos) {
-  const q = (document.getElementById('repo-search')?.value||'').toLowerCase();
-  const filtered = q ? repos.filter(r=>r.full_name.toLowerCase().includes(q)||(r.description||'').toLowerCase().includes(q)) : repos;
+  const q    = (document.getElementById('repo-search')?.value||'').toLowerCase();
+  const sort = document.getElementById('repo-sort')?.value || 'pushed';
+  const recentKeys = JSON.parse(localStorage.getItem('gd_recent_repos')||'[]');
+
+  let filtered = repos;
+  if (q) filtered = filtered.filter(r=>r.full_name.toLowerCase().includes(q)||(r.description||'').toLowerCase().includes(q));
+  if (repoFilter==='owner')  filtered = filtered.filter(r=>!r.fork && r.owner?.login===ghUser?.login);
+  if (repoFilter==='fork')   filtered = filtered.filter(r=>r.fork);
+  if (repoFilter==='issues') filtered = filtered.filter(r=>r.open_issues_count>0);
+
+  filtered = [...filtered].sort((a,b)=>{
+    if (sort==='stars')  return (b.stargazers_count||0)-(a.stargazers_count||0);
+    if (sort==='forks')  return (b.forks_count||0)-(a.forks_count||0);
+    if (sort==='name')   return a.name.localeCompare(b.name);
+    if (sort==='issues') return (b.open_issues_count||0)-(a.open_issues_count||0);
+    return new Date(b.pushed_at||b.updated_at) - new Date(a.pushed_at||a.updated_at);
+  });
+
   document.getElementById('repos-count').textContent = `${filtered.length} repo${filtered.length!==1?'s':''}`;
   if (!filtered.length) {
     document.getElementById('repo-grid').innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px">No repositories found.</div>';
     return;
   }
-  document.getElementById('repo-grid').innerHTML = filtered.map(r => {
-    const lang = r.language || '';
-    const dot  = lang ? `<span class="lang-dot" style="background:${LANG_COLORS[lang]||'var(--text3)'}"></span>${esc(lang)}` : '';
-    const stars = r.stargazers_count ? `<span class="rc-stars">★ ${r.stargazers_count}</span>` : '';
-    const badges = [r.private?'<span class="rc-badge rc-private">private</span>':'', r.fork?'<span class="rc-badge rc-fork">fork</span>':''].filter(Boolean).join('');
-    return `<div class="repo-card" onclick="selectRepo(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+
+  const recentRepos = recentKeys.map(k=>repos.find(r=>r.full_name===k)).filter(Boolean);
+  const recentSet   = new Set(recentKeys);
+
+  function repoCard(r, isRecent) {
+    const lang   = r.language || '';
+    const heat   = repoHeatScore(r);
+    const badges = [
+      r.private ? '<span class="rc-badge rc-private">private</span>' : '',
+      r.fork    ? '<span class="rc-badge rc-fork">fork</span>'       : '',
+      isRecent  ? '<span class="rc-recent-badge">recent</span>'      : '',
+    ].filter(Boolean).join('');
+    const issues  = r.open_issues_count ? `<span class="rc-stat rc-issues"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 5v4M8 11v.5"/></svg>${r.open_issues_count}</span>` : '';
+    const forks   = r.forks_count       ? `<span class="rc-stat"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm0 2.122a2.25 2.25 0 1 0-1.5 0v.878A2.25 2.25 0 0 0 5.75 8.5h1.5v2.128a2.251 2.251 0 1 0 1.5 0V8.5h1.5a2.25 2.25 0 0 0 2.25-2.25v-.878a2.25 2.25 0 1 0-1.5 0v.878a.75.75 0 0 1-.75.75h-4.5A.75.75 0 0 1 5 6.25v-.878zm3.75 7.378a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm3-8.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0z"/></svg>${r.forks_count}</span>` : '';
+    const stars   = r.stargazers_count  ? `<span class="rc-stat"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z"/></svg>${r.stargazers_count}</span>` : '';
+    const watchers= r.watchers_count>0  ? `<span class="rc-stat"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 0 1 0 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.83.88 9.576.43 8.898a1.62 1.62 0 0 1 0-1.798c.45-.677 1.367-1.931 2.637-3.022C4.33 2.992 6.019 2 8 2zm0 1.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM8 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>${r.watchers_count}</span>` : '';
+    return `<div class="repo-card" onclick="selectRepo(${JSON.stringify(r).replace(/"/g,'&quot;')})" title="${heat.label}">
       <div class="rc-top"><span class="rc-name">${esc(r.name)}</span><span class="rc-badges">${badges}</span></div>
-      <div class="rc-desc">${esc(r.description||'')}</div>
-      <div class="rc-meta"><span class="rc-lang">${dot?`<span class="lang-dot" style="background:${LANG_COLORS[lang]||'var(--text3)'}"></span>${esc(lang)}`:'—'}</span>${stars}<span class="rc-time">${timeAgo(r.pushed_at||r.updated_at)}</span></div>
+      <div class="rc-desc">${esc(r.description||'No description')}</div>
+      <div class="rc-meta">
+        <span class="rc-lang">${lang?`<span class="lang-dot" style="background:${LANG_COLORS[lang]||'var(--text3)'}"></span>${esc(lang)}`:'—'}</span>
+        <span class="rc-time">${timeAgo(r.pushed_at||r.updated_at)}</span>
+      </div>
+      <div class="rc-stats">${stars}${forks}${watchers}${issues}</div>
+      <div class="rc-heat" title="${heat.label}"><div class="rc-heat-bar ${heat.cls}" style="width:${heat.pct}%"></div></div>
     </div>`;
-  }).join('');
+  }
+
+  let html = '';
+  if (recentRepos.length && !q && repoFilter==='all' && sort==='pushed') {
+    html += `<div class="repos-section-label">Recently visited</div>`;
+    html += `<div class="repo-grid" style="margin-bottom:24px">${recentRepos.map(r=>repoCard(r,true)).join('')}</div>`;
+    html += `<div class="repos-section-label">All repositories</div>`;
+  }
+  html += `<div class="repo-grid">${filtered.map(r=>repoCard(r, recentSet.has(r.full_name))).join('')}</div>`;
+  document.getElementById('repo-grid').innerHTML = html;
 }
 
 function filterRepos() { renderRepoGrid(allRepos); }
 
 function selectRepo(repo) {
+  // Persist to recently visited (max 3, most recent first)
+  const recent = JSON.parse(localStorage.getItem('gd_recent_repos')||'[]').filter(k=>k!==repo.full_name);
+  recent.unshift(repo.full_name);
+  localStorage.setItem('gd_recent_repos', JSON.stringify(recent.slice(0,3)));
   currentRepo = repo;
   API = `${GH_API}/repos/${repo.full_name}`;
   // Clear all caches for fresh data
