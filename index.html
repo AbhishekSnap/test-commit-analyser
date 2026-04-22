@@ -1279,8 +1279,9 @@ function renderCommitList() {
     const auth = (c.commit.author.name||'').toLowerCase();
     const sha  = c.sha.toLowerCase();
     if (searchQ) {
+      const subject = c.commit.message.split('\n')[0].toLowerCase(); // first line only — avoids matching branch names in merge commits
       const files = (commitDetailCache.get(c.sha)?.files||[]).map(f=>f.filename.toLowerCase()).join(' ');
-      if (!msg.includes(searchQ) && !auth.includes(searchQ) && !sha.includes(searchQ) && !files.includes(searchQ)) return false;
+      if (!subject.includes(searchQ) && !auth.includes(searchQ) && !sha.includes(searchQ) && !files.includes(searchQ)) return false;
     }
     if (commitFilter !== 'All' && getDisplayType(c) !== commitFilter) return false;
     return true;
