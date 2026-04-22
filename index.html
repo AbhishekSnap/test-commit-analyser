@@ -2238,30 +2238,35 @@ async function generateReport() {
   const status = document.getElementById('report-status');
   btn.disabled = true;
 
+  const fromDate = new Date(from);
+  const toDate   = new Date(to + 'T23:59:59');
+
   // Fetch enough commit pages to cover the selected date range.
   // GitHub returns commits newest-first, so stop once the oldest commit
   // in the batch is already before fromDate — no earlier pages can help.
-  if (hasMoreCommits) {
-    const q = currentBranch ? `&sha=${encodeURIComponent(currentBranch)}` : '';
-    let oldestLoaded = commits.length
-      ? new Date(commits[commits.length-1].commit.author.date)
-      : new Date();
-    while (hasMoreCommits && oldestLoaded >= fromDate) {
-      status.textContent = `Loading commits (${commits.length} so far)...`;
-      commitPage++;
-      const batch = await ghFetch(`${API}/commits?per_page=${PAGE_SIZE_COMMITS}&page=${commitPage}${q}`);
-      commits = commits.concat(batch);
-      hasMoreCommits = batch.length === PAGE_SIZE_COMMITS;
-      if (batch.length) {
-        oldestLoaded = new Date(batch[batch.length-1].commit.author.date);
+  try {
+    if (hasMoreCommits) {
+      const q = currentBranch ? `&sha=${encodeURIComponent(currentBranch)}` : '';
+      let oldestLoaded = commits.length
+        ? new Date(commits[commits.length-1].commit.author.date)
+        : new Date();
+      while (hasMoreCommits && oldestLoaded >= fromDate) {
+        status.textContent = `Loading commits (${commits.length} so far)...`;
+        commitPage++;
+        const batch = await ghFetch(`${API}/commits?per_page=${PAGE_SIZE_COMMITS}&page=${commitPage}${q}`);
+        commits = commits.concat(batch);
+        hasMoreCommits = batch.length === PAGE_SIZE_COMMITS;
+        if (batch.length) oldestLoaded = new Date(batch[batch.length-1].commit.author.date);
       }
+      renderCommitList(); renderRightPanels(); updateStats(); renderLoadMore();
     }
-    renderCommitList(); renderRightPanels(); updateStats(); renderLoadMore();
+  } catch(e) {
+    status.textContent = 'Failed to load commits: ' + e.message;
+    btn.disabled = false;
+    return;
   }
 
   status.textContent = 'Analysing commits and PRs...';
-  const fromDate = new Date(from);
-  const toDate   = new Date(to + 'T23:59:59');
 
   const periodCommits = commits.filter(c => {
     const d = new Date(c.commit.author.date);
