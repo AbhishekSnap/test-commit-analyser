@@ -2234,12 +2234,27 @@ async function generateReport() {
   const client = document.getElementById('report-client').value.trim() || currentRepo?.full_name || 'Project';
   if (!from || !to) { toast('⚠️','Dates required','Pick a from and to date'); return; }
 
-  const fromDate = new Date(from);
-  const toDate   = new Date(to + 'T23:59:59');
   const btn    = document.getElementById('report-gen-btn');
   const status = document.getElementById('report-status');
   btn.disabled = true;
+
+  // Auto-fetch all remaining commit pages so "All time" is truly complete
+  if (hasMoreCommits) {
+    status.textContent = `Loading all commits (${commits.length} so far)...`;
+    const q = currentBranch ? `&sha=${encodeURIComponent(currentBranch)}` : '';
+    while (hasMoreCommits) {
+      commitPage++;
+      const batch = await ghFetch(`${API}/commits?per_page=${PAGE_SIZE_COMMITS}&page=${commitPage}${q}`);
+      commits = commits.concat(batch);
+      hasMoreCommits = batch.length === PAGE_SIZE_COMMITS;
+      status.textContent = `Loading all commits (${commits.length} so far)...`;
+    }
+    renderCommitList(); renderRightPanels(); updateStats(); renderLoadMore();
+  }
+
   status.textContent = 'Analysing commits and PRs...';
+  const fromDate = new Date(from);
+  const toDate   = new Date(to + 'T23:59:59');
 
   const periodCommits = commits.filter(c => {
     const d = new Date(c.commit.author.date);
@@ -2256,11 +2271,9 @@ async function generateReport() {
   const bugfixes  = periodCommits.filter(c => detectType(c.commit.message) === 'Bug Fix');
   const authors   = [...new Set(periodCommits.map(c => c.commit.author.name))];
 
-  // per-author commit counts
   const authorCounts = {};
   periodCommits.forEach(c => { const a = c.commit.author.name; authorCounts[a] = (authorCounts[a]||0)+1; });
 
-  // weekly breakdown (last 8 weeks or full period)
   const weekBuckets = {};
   periodCommits.forEach(c => {
     const d = new Date(c.commit.author.date);
@@ -2272,9 +2285,8 @@ async function generateReport() {
     if (t === 'Feature') weekBuckets[wk].features++;
     if (t === 'Bug Fix') weekBuckets[wk].fixes++;
   });
-  const weekRows = Object.entries(weekBuckets).sort((a,b)=>a[0].localeCompare(b[0])).slice(-10);
+  const weekRows = Object.entries(weekBuckets).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12);
 
-  // avg PR merge time in days
   let avgMergeHrs = 0;
   const mergedWithTime = mergedPRs.filter(p => p.created_at && p.merged_at);
   if (mergedWithTime.length) {
@@ -2283,22 +2295,23 @@ async function generateReport() {
     },0) / mergedWithTime.length);
   }
 
-  const prSummary = mergedPRs.slice(0,20).map(p =>
+  const prSummary = mergedPRs.slice(0,25).map(p =>
     `PR "${p.title}" by ${p.user.login}, merged ${new Date(p.merged_at).toDateString()}`
   ).join('\n');
-  const commitSummary = periodCommits.slice(0,40).map(c =>
+  const commitSummary = periodCommits.slice(0,60).map(c =>
     `[${detectType(c.commit.message)}] ${c.commit.message.split('\n')[0]} — ${c.commit.author.name}`
   ).join('\n');
   const openPRSummary = openPRs.slice(0,10).map(p => `"${p.title}" by ${p.user.login}`).join('\n');
+  const avgCycleStr = avgMergeHrs > 0 ? (avgMergeHrs < 24 ? avgMergeHrs + ' hours' : Math.round(avgMergeHrs/24) + ' days') : 'N/A';
 
-  const prompt = `You are writing a detailed professional project status report for a CLIENT MEETING. Audience: non-technical manager or client. No code, no jargon, no git terminology, no branch names, no commit hashes.\n\nProject: ${client}\nRepository: ${currentRepo?.full_name}\nPeriod: ${from} to ${to}\n\nKey metrics:\n- Total changes delivered: ${periodCommits.length} updates\n- Team members: ${authors.join(', ')}\n- Items delivered (merged): ${mergedPRs.length}\n- Items in progress (open): ${openPRs.length}\n- New features: ${features.length}\n- Bug fixes: ${bugfixes.length}\n- Average delivery cycle: ${avgMergeHrs > 0 ? (avgMergeHrs < 24 ? avgMergeHrs + ' hours' : Math.round(avgMergeHrs/24) + ' days') : 'N/A'}\n\nDelivered items:\n${prSummary||'None'}\n\nWork log summary:\n${commitSummary||'None'}\n\nOpen / in progress:\n${openPRSummary||'None'}\n\nReturn a JSON object with EXACTLY these keys:\n"period_label": short string like "April 2026" or "Q1 2026"\n"executive_summary": 3-4 sentence paragraph of what was achieved overall — confident, positive, professional tone\n"key_metrics_narrative": 2-3 sentences interpreting the numbers in business terms (pace of delivery, team size, efficiency)\n"features_shipped": array of objects, each with "title" (5-8 words) and "description" (1-2 full sentences in plain English explaining the business value). Max 8 items.\n"issues_resolved": array of strings, each a plain-English description of a problem that was fixed. Max 6 items.\n"in_progress": array of strings describing what is currently being worked on, in plain language. Max 5 items.\n"recommendations": array of 2-3 strings, each a short actionable suggestion for the team or stakeholders based on the data — things like pace, review process, priorities.\n"process_health": 2-3 sentences assessing the team delivery process — are reviews happening, is the pace sustainable, any patterns noticed?\n"team_highlights": 2-3 sentences about the team contributions — who led delivery, any standout effort, overall collaboration tone.\n"risk_summary": 1-2 sentences about any risks visible in the data — open items piling up, slow reviews, single-contributor risk, etc. If no risks, say the project looks healthy.\n\nRules: No em dashes, no bullet symbols, no markdown, no technical jargon. Use plain commas and colons. Return ONLY valid JSON with no extra text.`;
+  const prompt = `You are writing a detailed professional project status report for a CLIENT MEETING. Audience: non-technical manager or client. No code, no jargon, no git terminology, no branch names, no commit hashes.\n\nProject: ${client}\nRepository: ${currentRepo?.full_name}\nPeriod: ${from} to ${to}\n\nKey metrics:\n- Total changes delivered: ${periodCommits.length}\n- Team members: ${authors.join(', ')}\n- Items delivered (merged PRs): ${mergedPRs.length}\n- Items in progress (open PRs): ${openPRs.length}\n- New features: ${features.length}\n- Bug fixes: ${bugfixes.length}\n- Average delivery cycle time: ${avgCycleStr}\n\nDelivered items (merged PRs):\n${prSummary||'None'}\n\nWork log (commit messages):\n${commitSummary||'None'}\n\nOpen / in progress:\n${openPRSummary||'None'}\n\nReturn a JSON object with EXACTLY these keys:\n\n"period_label": short string like "April 2026" or "Q1 2026"\n\n"executive_summary": array of 5-6 strings. Each string is one concise bullet point (1 sentence) summarising a key achievement or highlight of the period. Cover: overall delivery, top features, quality improvements, team performance, and outlook. Confident and professional tone.\n\n"key_metrics_narrative": 3-4 sentences interpreting the numbers in business terms — pace, efficiency, team productivity, delivery rate compared to scope.\n\n"features_shipped": array of objects, each with "title" (6-10 words, plain English) and "description" (2-3 full sentences explaining what was built and its business value — why it matters to users or stakeholders). Include up to 10 items.\n\n"issues_resolved": array of objects, each with "title" (short label) and "description" (1-2 sentences explaining what was broken and how it was fixed in plain language). Include up to 8 items.\n\n"in_progress": array of objects, each with "title" and "description" (1-2 sentences on what is being worked on and expected outcome). Include up to 6 items.\n\n"recommendations": array of 3-4 strings, each a specific actionable recommendation for the team or client based on the data — delivery pace, review coverage, technical debt, priorities.\n\n"process_health": 3-4 sentences assessing delivery process health — review coverage, pace consistency, collaboration patterns, release cadence.\n\n"team_highlights": 3-4 sentences on team contributions — who drove delivery, standout effort, collaboration quality, contribution balance.\n\n"risk_summary": 2-3 sentences identifying risks visible in the data — open items accumulating, single-contributor dependency, review bottlenecks, slowing pace. If no significant risks, say the project looks healthy and explain why.\n\nRules: No em dashes, no bullet symbols, no markdown syntax, no technical jargon. Use plain commas and colons. Return ONLY valid JSON.`;
 
   try {
     status.textContent = 'Claude is writing your report...';
     const res = await fetch(CLAUDE, {
       method: 'POST',
       headers: {'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({model:MODEL, max_tokens:3000, messages:[{role:'user',content:prompt}]})
+      body: JSON.stringify({model:MODEL, max_tokens:4000, messages:[{role:'user',content:prompt}]})
     });
     if (!res.ok) throw new Error('Claude API error ' + res.status);
     const data = await res.json();
@@ -2363,6 +2376,9 @@ function downloadReport(r, client, from, to, stats) {
   .section{margin-bottom:32px}
   h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid #eee}
   .exec{font-size:15px;line-height:1.75;color:#222;background:#fffbf0;border-left:4px solid #c9a84c;padding:18px 22px;border-radius:0 10px 10px 0}
+  .exec-bullets{padding-left:20px;display:flex;flex-direction:column;gap:10px}
+  .exec-bullets li{font-size:15px;line-height:1.65;color:#222}
+  .exec-bullets li::marker{color:#c9a84c;font-size:18px}
   .narrative{font-size:14px;line-height:1.7;color:#444;background:#f5f5f7;padding:16px 20px;border-radius:8px}
   .feature-grid{display:flex;flex-direction:column;gap:12px}
   .feature-card{border:1px solid #e8e8e8;border-radius:10px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
@@ -2413,7 +2429,11 @@ function downloadReport(r, client, from, to, stats) {
 
 <div class="section">
   <h2>Executive Summary</h2>
-  <div class="exec">${esc(r.executive_summary||'')}</div>
+  <div class="exec">
+    ${Array.isArray(r.executive_summary)
+      ? `<ul class="exec-bullets">${r.executive_summary.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`
+      : esc(r.executive_summary||'')}
+  </div>
 </div>
 
 ${r.key_metrics_narrative ? `<div class="section">
@@ -2431,7 +2451,10 @@ ${r.features_shipped?.length ? `<div class="section">
 
 ${r.issues_resolved?.length ? `<div class="section">
   <h2>Issues Resolved</h2>
-  <div class="feature-grid">${(r.issues_resolved||[]).map(s=>`<div class="feature-card"><span class="f-tag fix">Fixed</span><div class="f-desc">${esc(s)}</div></div>`).join('')}</div>
+  <div class="feature-grid">${(r.issues_resolved||[]).map(s => {
+    if (typeof s === 'string') return `<div class="feature-card"><span class="f-tag fix">Fixed</span><div class="f-desc">${esc(s)}</div></div>`;
+    return `<div class="feature-card"><span class="f-tag fix">Fixed</span><div><div class="f-title">${esc(s.title||'')}</div><div class="f-desc">${esc(s.description||'')}</div></div></div>`;
+  }).join('')}</div>
 </div>` : ''}
 
 ${weekRows.length > 1 ? `<div class="section">
@@ -2466,7 +2489,10 @@ ${r.process_health ? `<div class="section">
 
 ${r.in_progress?.length ? `<div class="section">
   <h2>Currently In Progress</h2>
-  <div class="feature-grid">${(r.in_progress||[]).map(s=>`<div class="feature-card"><span class="f-tag wip">WIP</span><div class="f-desc">${esc(s)}</div></div>`).join('')}</div>
+  <div class="feature-grid">${(r.in_progress||[]).map(s => {
+    if (typeof s === 'string') return `<div class="feature-card"><span class="f-tag wip">WIP</span><div class="f-desc">${esc(s)}</div></div>`;
+    return `<div class="feature-card"><span class="f-tag wip">WIP</span><div><div class="f-title">${esc(s.title||'')}</div><div class="f-desc">${esc(s.description||'')}</div></div></div>`;
+  }).join('')}</div>
 </div>` : ''}
 
 ${r.recommendations?.length ? `<div class="section">
