@@ -600,7 +600,7 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
         <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
           <div class="search-bar" style="flex:1;margin-bottom:0">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="commit-search" placeholder="Search by message, author, SHA or file…" oninput="filterCommits()">
+            <input type="text" id="commit-search" placeholder="Search by author or SHA…" oninput="filterCommits()">
           </div>
           <select id="branch-select" onchange="switchBranch(this.value)" style="background:var(--s1);border:1px solid var(--border);border-radius:var(--r-btn);padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;cursor:pointer;width:150px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis">
             <option>Loading…</option>
@@ -1279,9 +1279,7 @@ function renderCommitList() {
     const auth = (c.commit.author.name||'').toLowerCase();
     const sha  = c.sha.toLowerCase();
     if (searchQ) {
-      const subject = c.commit.message.split('\n')[0].toLowerCase(); // first line only — avoids matching branch names in merge commits
-      const files = (commitDetailCache.get(c.sha)?.files||[]).map(f=>f.filename.toLowerCase()).join(' ');
-      if (!subject.includes(searchQ) && !auth.includes(searchQ) && !sha.includes(searchQ) && !files.includes(searchQ)) return false;
+      if (!auth.includes(searchQ) && !sha.includes(searchQ)) return false;
     }
     if (commitFilter !== 'All' && getDisplayType(c) !== commitFilter) return false;
     return true;
