@@ -374,21 +374,12 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       <div class="lf-row"><div class="lf-icon">🔀</div><span>PR review sentiment, CI status, and quality metrics</span></div>
       <div class="lf-row"><div class="lf-icon">📊</div><span>Insights, contributor stats, and activity heatmaps</span></div>
     </div>
-    <div id="landing-connect-ui">
-      <button class="btn-connect" onclick="connectGitHub()">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
-        Connect with GitHub
-      </button>
-    </div>
-    <div id="landing-device-ui" style="display:none">
-      <div class="device-box">
-        <div class="device-label">Visit this URL and enter the code</div>
-        <div class="device-url"><a href="https://github.com/login/device" target="_blank">github.com/login/device</a></div>
-        <div class="device-code-display" id="device-code-text">——</div>
-      </div>
-      <div class="poll-status"><div class="live-dot"></div><span id="poll-status-text">Waiting for authorisation…</span></div>
-    </div>
-    <div class="landing-note">Your token is stored in sessionStorage only — never sent to any server.<br>Each visitor connects their own GitHub account.</div>
+    <input type="password" id="pat-input" class="api-inp" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')connectGitHub()">
+    <button class="btn-connect" onclick="connectGitHub()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+      Connect with GitHub
+    </button>
+    <div class="landing-note">Create a PAT at <strong>github.com → Settings → Developer settings → Personal access tokens</strong> with <code>repo</code> and <code>read:user</code> scopes.<br><br>Token stored in sessionStorage only — never sent to any server.</div>
   </div>
 </div>
 
@@ -789,59 +780,24 @@ function showScreen(name) {
 
 // ── GITHUB DEVICE FLOW AUTH ──────────────────────────────────────────────────
 async function connectGitHub() {
-  if (CLIENT_ID === 'YOUR_GITHUB_OAUTH_CLIENT_ID') {
-    toast('⚠️','Setup required','Replace CLIENT_ID in the HTML with your GitHub OAuth App Client ID');
-    return;
-  }
-  const connectBtn = document.querySelector('.btn-connect');
-  connectBtn.disabled = true;
-  connectBtn.textContent = 'Requesting code…';
+  const pat = document.getElementById('pat-input').value.trim();
+  if (!pat) { toast('⚠️','No token','Paste your GitHub Personal Access Token first'); return; }
+  const btn = document.querySelector('.btn-connect');
+  btn.disabled = true; btn.textContent = 'Verifying…';
   try {
-    const res = await fetch('https://github.com/login/device/code', {
-      method:'POST',
-      headers:{'Accept':'application/json','Content-Type':'application/json'},
-      body: JSON.stringify({client_id: CLIENT_ID, scope: 'repo read:user'})
-    });
-    const data = await res.json();
-    if (!data.device_code) throw new Error(data.error_description || 'Failed to get device code');
-    document.getElementById('landing-connect-ui').style.display = 'none';
-    document.getElementById('landing-device-ui').style.display  = 'block';
-    document.getElementById('device-code-text').textContent = data.user_code;
-    pollDeviceToken(data.device_code, data.interval || 5);
+    ghToken = pat;
+    // Verify token works by fetching user
+    const user = await ghFetch(`${GH_API}/user`);
+    if (!user.login) throw new Error('Invalid token response');
+    sessionStorage.setItem('gd_gh_token', ghToken);
+    document.getElementById('pat-input').value = '';
+    await afterConnect();
   } catch(e) {
-    connectBtn.disabled = false;
-    connectBtn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg> Connect with GitHub';
-    toast('❌','Connection failed', e.message);
+    ghToken = '';
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg> Connect with GitHub';
+    toast('❌','Invalid token', e.message);
   }
-}
-
-async function pollDeviceToken(deviceCode, interval) {
-  const poll = async () => {
-    const res = await fetch('https://github.com/login/oauth/access_token', {
-      method:'POST',
-      headers:{'Accept':'application/json','Content-Type':'application/json'},
-      body: JSON.stringify({client_id: CLIENT_ID, device_code: deviceCode, grant_type:'urn:ietf:params:oauth:grant-type:device_code'})
-    });
-    const data = await res.json();
-    if (data.access_token) {
-      ghToken = data.access_token;
-      sessionStorage.setItem('gd_gh_token', ghToken);
-      document.getElementById('poll-status-text').textContent = 'Authorised! Loading your repos…';
-      await afterConnect();
-    } else if (data.error === 'authorization_pending') {
-      setTimeout(poll, interval * 1000);
-    } else if (data.error === 'slow_down') {
-      setTimeout(poll, (interval + 5) * 1000);
-    } else {
-      document.getElementById('landing-device-ui').style.display = 'none';
-      document.getElementById('landing-connect-ui').style.display = 'block';
-      const btn = document.querySelector('.btn-connect');
-      btn.disabled = false;
-      btn.textContent = 'Connect with GitHub';
-      toast('❌','Auth failed', data.error_description || data.error);
-    }
-  };
-  setTimeout(poll, interval * 1000);
 }
 
 async function afterConnect() {
