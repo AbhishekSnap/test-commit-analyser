@@ -358,19 +358,28 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
 .lang-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--text3)}
 .rc-stars{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text2)}
 .rc-time{font-size:11px;color:var(--text3);margin-left:auto}
-.rc-stats{display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap}
+.rc-stats{display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap;min-height:16px}
 .rc-stat{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text3)}
 .rc-stat svg{opacity:.7}
 .rc-issues{color:var(--gold)}
 /* Activity heartbeat */
-.rc-heat{height:3px;border-radius:2px;margin-top:6px;background:var(--border)}
-.rc-heat-bar{height:100%;border-radius:2px;transition:width .3s}
-.heat-hot{background:var(--green)}
-.heat-warm{background:var(--gold)}
-.heat-cool{background:var(--teal)}
-.heat-cold{background:var(--border2)}
+.rc-heat{margin-top:auto;padding-top:10px;display:flex;align-items:center;gap:6px}
+.rc-heat-label{font-size:10px;color:var(--text3);white-space:nowrap;font-family:var(--mono)}
+.rc-pulse{display:flex;align-items:center;gap:0;flex:1}
+.rc-pulse svg{width:100%;height:22px;overflow:visible}
+.pulse-dot{animation:pulse-ping 1.8s ease-in-out infinite}
+.heat-hot .pulse-dot{fill:var(--green)}
+.heat-warm .pulse-dot{fill:var(--gold)}
+.heat-cool .pulse-dot{fill:var(--teal)}
+.heat-cold .pulse-dot{fill:var(--border2);animation:none}
+.heat-hot .pulse-line{stroke:var(--green)}
+.heat-warm .pulse-line{stroke:var(--gold)}
+.heat-cool .pulse-line{stroke:var(--teal)}
+.heat-cold .pulse-line{stroke:var(--border2)}
+@keyframes pulse-ping{0%,100%{r:3;opacity:1}50%{r:5;opacity:.6}}
 /* Sort + filter bar */
-.repos-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.repos-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px}
+.repos-toolbar-left{display:flex;align-items:center;gap:6px}
 .repos-sort{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-btn);padding:7px 10px;color:var(--text2);font-family:var(--sans);font-size:12px;outline:none;cursor:pointer}
 .repos-sort:focus{border-color:var(--border2)}
 .filter-tabs{display:flex;gap:4px}
@@ -419,11 +428,13 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       <span class="repos-count" id="repos-count"></span>
     </div>
     <div class="repos-toolbar">
-      <div class="filter-tabs">
-        <button class="filter-tab active" onclick="setRepoFilter('all',this)">All</button>
-        <button class="filter-tab" onclick="setRepoFilter('owner',this)">Mine</button>
-        <button class="filter-tab" onclick="setRepoFilter('fork',this)">Forks</button>
-        <button class="filter-tab" onclick="setRepoFilter('issues',this)">Has Issues</button>
+      <div class="repos-toolbar-left">
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="setRepoFilter('all',this)">All</button>
+          <button class="filter-tab" onclick="setRepoFilter('owner',this)">Mine</button>
+          <button class="filter-tab" onclick="setRepoFilter('fork',this)">Forks</button>
+          <button class="filter-tab" onclick="setRepoFilter('issues',this)">Has Issues</button>
+        </div>
       </div>
       <select class="repos-sort" id="repo-sort" onchange="filterRepos()">
         <option value="pushed">Last pushed</option>
@@ -949,7 +960,15 @@ function renderRepoGrid(repos) {
         <span class="rc-time">${timeAgo(r.pushed_at||r.updated_at)}</span>
       </div>
       <div class="rc-stats">${stars}${forks}${watchers}${issues}</div>
-      <div class="rc-heat" title="${heat.label}"><div class="rc-heat-bar ${heat.cls}" style="width:${heat.pct}%"></div></div>
+      <div class="rc-heat ${heat.cls}">
+        <div class="rc-pulse">
+          <svg viewBox="0 0 120 22" preserveAspectRatio="none">
+            <polyline class="pulse-line" points="${heat.pct===100?'0,11 15,11 20,3 25,19 30,7 35,15 40,11 55,11 60,2 65,20 70,5 75,17 80,11 120,11':'0,11 30,11 35,5 40,17 45,11 80,11 83,8 86,14 89,11 120,11'}" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="${heat.pct===12?0.3:0.7}"/>
+            <circle class="pulse-dot" cx="${heat.pct===100?80:89}" cy="11" r="3"/>
+          </svg>
+        </div>
+        <span class="rc-heat-label">${heat.label}</span>
+      </div>
     </div>`;
   }
 
