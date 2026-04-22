@@ -906,6 +906,14 @@ function typeCls(t) {
 }
 function riskCls(r) { if(!r)return''; r=r.toLowerCase(); if(r.startsWith('high'))return'risk-high'; if(r.startsWith('med'))return'risk-medium'; return''; }
 function riskColor(r) { if(!r)return'risk-teal'; r=r.toLowerCase(); if(r.startsWith('high'))return'risk-red'; if(r.startsWith('med'))return'risk-amber'; return'risk-teal'; }
+// Split "Label: reason" or "Label — reason" into [label, reason]
+function splitLabel(s) {
+  if (!s) return ['', ''];
+  const sep = s.includes(':') ? ':' : (s.includes('—') ? '—' : ':');
+  const idx = s.indexOf(sep);
+  if (idx === -1) return [s.trim(), ''];
+  return [s.slice(0, idx).trim(), s.slice(idx + sep.length).trim()];
+}
 function isSecurityFile(fname) { return /secret|password|credential|private[_-]?key|api[_-]?key|\.pem$|\.key$|\.pfx$|\.p12$|oauth|jwt|crypto|ssl|\.env/i.test(fname); }
 function hasSecurityTouch(files) { return (files||[]).some(f=>isSecurityFile(f.filename)); }
 
@@ -1204,7 +1212,7 @@ async function analyzeCommit(sha) {
   const files  = (detail.files||[]).slice(0,20);
   const diff   = files.map(f=>(f.patch||'').slice(0,300)).join('\n').slice(0,3000);
   const msg = `Commit SHA: ${sha.slice(0,7)}\nMessage: ${detail.commit.message}\nAuthor: ${detail.commit.author.name}\nDate: ${detail.commit.author.date}\nFiles changed: ${files.length}\n${files.map(f=>`${f.filename}: +${f.additions} -${f.deletions}`).join('\n')}\n\nDiff (first 3000 chars):\n${diff}`;
-  const sys = `You are a senior software engineer reviewing a git commit.\nAnalyse the provided commit data and return a JSON object with exactly these six keys:\n  "plain_summary": 2-3 sentence plain-English description of what changed (non-technical, suitable for a project manager)\n  "technical_summary": detailed per-file technical breakdown for a code reviewer who has the diff open. For EACH file changed, produce a section using this exact structure: "**filename.py**\\n- FunctionOrClass: what specifically changed — new parameters, altered logic, removed behaviour, etc.\\n- ..." Reference exact function names, class names, decorators, and constants. A reviewer should be able to open each file and navigate it using your description. Do not summarise vaguely — be precise about what each function does differently after this commit.\n  "change_type": exactly one of: Bug Fix | Feature | Refactor | Chore | Docs | Tests | Performance | Security\n  "quality": one-line starting with "Good" or "Needs improvement", em-dash, short reason\n  "risk_level": one of: Low | Medium | High — em-dash and one-line reason\n  "suggested_message": return original if clear and follows conventional commits; otherwise return improved type(scope): description\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
+  const sys = `You are a senior software engineer reviewing a git commit.\nAnalyse the provided commit data and return a JSON object with exactly these six keys:\n  "plain_summary": 2-3 sentence plain-English description of what changed (non-technical, suitable for a project manager)\n  "technical_summary": detailed per-file technical breakdown for a code reviewer who has the diff open. For EACH file changed, produce a section using this exact structure: "filename.py\\n- FunctionOrClass: what specifically changed, new parameters, altered logic, removed behaviour, etc.\\n- ..." Reference exact function names, class names, decorators, and constants. Be precise.\n  "change_type": exactly one of: Bug Fix | Feature | Refactor | Chore | Docs | Tests | Performance | Security\n  "quality": one-line starting with "Good" or "Needs improvement", colon, short reason. Example: "Good: clear scope and clean diff"\n  "risk_level": one of: Low | Medium | High, colon, one-line reason. Example: "Medium: touches auth logic"\n  "suggested_message": return original if clear and follows conventional commits; otherwise return improved type(scope): description\nIMPORTANT: Do NOT use em dashes, en dashes, ellipsis characters, bullet symbols, or any non-ASCII punctuation. Use plain colons, hyphens, and commas instead.\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
   const res = await fetch(CLAUDE, {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
@@ -1226,7 +1234,7 @@ async function analyzePR(num, pr) {
   if (!key) { switchView('settings'); toast('🔑','API Key Required','Add your Anthropic API key in Settings'); return null; }
   const [files, reviews] = await Promise.all([fetchPRFiles(num), fetchPRReviews(num)]);
   const msg = `PR #${num}: ${pr.title}\nAuthor: ${pr.user.login}\nBase: ${pr.base.ref}\nHead: ${pr.head.ref}\nDescription: ${pr.body||'No description provided'}\nCommits: ${pr.commits||'?'}\nFiles changed: ${files.length}\n${files.map(f=>`${f.filename}: +${f.additions} -${f.deletions}`).join('\n')}\nReviews:\n${reviews.map(r=>`${r.user.login}: ${r.state}`).join('\n')||'No reviews yet'}`;
-  const sys = `You are a senior software engineer reviewing a GitHub pull request.\nReturn a JSON object with exactly four keys:\n  "summary": 2-3 sentence plain-English description suitable for a non-technical stakeholder.\n  "technical_impact": per-file breakdown. For EACH file: "**filename.py**\\n- FunctionOrClass: what changed". Be precise.\n  "review_sentiment": one of: Approved | Changes Requested | Mixed | No Reviews Yet — em-dash and one-line summary.\n  "quality": starts with "Good" or "Needs improvement", em-dash, short reason.\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
+  const sys = `You are a senior software engineer reviewing a GitHub pull request.\nReturn a JSON object with exactly four keys:\n  "summary": 2-3 sentence plain-English description suitable for a non-technical stakeholder.\n  "technical_impact": per-file breakdown. For EACH file: "filename.py\\n- FunctionOrClass: what changed". Be precise.\n  "review_sentiment": one of: Approved | Changes Requested | Mixed | No Reviews Yet, colon, one-line summary. Example: "Approved: two reviewers approved with no outstanding comments"\n  "quality": starts with "Good" or "Needs improvement", colon, short reason. Example: "Good: well-scoped with clear description"\nIMPORTANT: Do NOT use em dashes, en dashes, ellipsis characters, bullet symbols, or any non-ASCII punctuation. Use plain colons, hyphens, and commas instead.\nReturn ONLY valid JSON. No markdown fences, no extra text.`;
   const res = await fetch(CLAUDE, {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
@@ -1454,8 +1462,8 @@ function expandedPRHtml(p) {
       <div class="abox"><div class="albl">What This PR Does</div><div class="acontent">${fmt(cached.summary)}</div></div>
       <div class="abox"><div class="albl">Technical Impact</div><div class="acontent">${fmt(cached.technical_impact)}</div></div>
       <div class="abox"><div class="albl">Review Status</div>
-        <span class="rev-badge ${revCls}">${esc(sentiment.split('—')[0].trim())}</span>
-        <div class="acontent" style="margin-top:6px">${esc((sentiment.split('—')[1]||'').trim())}</div>
+        <span class="rev-badge ${revCls}">${esc(splitLabel(sentiment)[0])}</span>
+        <div class="acontent" style="margin-top:6px">${esc(splitLabel(sentiment)[1])}</div>
       </div>
       <div class="abox"><div class="albl">PR Quality</div><div class="acontent">${esc(cached.quality)}</div></div>
     </div>
