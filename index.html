@@ -569,6 +569,10 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
     <span class="topbar-badge" id="topbar-badge">AI Analysis</span>
   </div>
   <div class="topbar-right">
+    <button class="btn" onclick="openReportModal()" style="color:var(--gold);border-color:rgba(201,168,76,.3)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Report
+    </button>
     <button class="btn" onclick="toggleTheme()" id="theme-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       Light
@@ -618,6 +622,7 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
           <button class="ftab" onclick="setFilter('Security',this)">Security</button>
         </div>
         <div id="commit-list"></div>
+        <div id="load-more-commits"></div>
       </div>
       <div>
         <div class="panel">
@@ -661,6 +666,7 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       </button>
     </div>
     <div id="pr-list"></div>
+    <div id="load-more-prs"></div>
   </div>
 
   <!-- INSIGHTS VIEW -->
@@ -821,6 +827,34 @@ GITHUB_TOKEN:      auto-provided by GitHub
 
 <!-- TOAST -->
 <div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- REPORT MODAL -->
+<div id="report-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-card);width:480px;max-width:calc(100vw - 32px);padding:28px;position:relative">
+    <button onclick="closeReportModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1">✕</button>
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">Generate Client Report</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:20px">AI-written plain-English summary of work done — ready to download and present</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">From</div>
+        <input type="date" id="report-from" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">To</div>
+        <input type="date" id="report-to" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none">
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Project / Client name (optional)</div>
+      <input type="text" id="report-client" placeholder="e.g. Acme Corp — Q2 Sprint" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none">
+    </div>
+    <div id="report-status" style="font-size:12px;color:var(--text3);margin-bottom:16px;min-height:18px"></div>
+    <button id="report-gen-btn" class="btn btn-primary" onclick="generateReport()" style="width:100%;justify-content:center;gap:8px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Generate with AI
+    </button>
+  </div>
+</div>
 
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -1158,14 +1192,56 @@ async function switchBranch(name) {
   await fetchCommits();
   renderCommitList(); renderRightPanels(); updateStats();
 }
+let commitPage = 1;
+let prPage = 1;
+let hasMoreCommits = false;
+let hasMorePRs = false;
+const PAGE_SIZE_COMMITS = 50;
+const PAGE_SIZE_PRS = 20;
+
 async function fetchCommits() {
+  commitPage = 1;
   const q = currentBranch ? `&sha=${encodeURIComponent(currentBranch)}` : '';
-  commits = await ghFetch(`${API}/commits?per_page=50${q}`);
+  const batch = await ghFetch(`${API}/commits?per_page=${PAGE_SIZE_COMMITS}&page=1${q}`);
+  commits = batch;
+  hasMoreCommits = batch.length === PAGE_SIZE_COMMITS;
+  renderLoadMore();
   return commits;
 }
+async function loadMoreCommits() {
+  commitPage++;
+  const q = currentBranch ? `&sha=${encodeURIComponent(currentBranch)}` : '';
+  const btn = document.getElementById('load-more-commits-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+  const batch = await ghFetch(`${API}/commits?per_page=${PAGE_SIZE_COMMITS}&page=${commitPage}${q}`);
+  commits = commits.concat(batch);
+  hasMoreCommits = batch.length === PAGE_SIZE_COMMITS;
+  renderCommitList(); renderRightPanels(); updateStats(); renderLoadMore();
+}
 async function fetchPRs() {
-  prs = await ghFetch(`${API}/pulls?state=all&per_page=20`);
+  prPage = 1;
+  const batch = await ghFetch(`${API}/pulls?state=all&per_page=${PAGE_SIZE_PRS}&page=1`);
+  prs = batch;
+  hasMorePRs = batch.length === PAGE_SIZE_PRS;
+  renderLoadMore();
   return prs;
+}
+async function loadMorePRs() {
+  prPage++;
+  const btn = document.getElementById('load-more-prs-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+  const batch = await ghFetch(`${API}/pulls?state=all&per_page=${PAGE_SIZE_PRS}&page=${prPage}`);
+  prs = prs.concat(batch);
+  hasMorePRs = batch.length === PAGE_SIZE_PRS;
+  renderPRList(); updatePRStats(); renderLoadMore();
+}
+function renderLoadMore() {
+  const cc = document.getElementById('load-more-commits');
+  const cp = document.getElementById('load-more-prs');
+  if (cc) cc.innerHTML = hasMoreCommits
+    ? `<button id="load-more-commits-btn" class="btn" onclick="loadMoreCommits()" style="width:100%;justify-content:center;margin:12px 0">Load more commits (${commits.length} loaded)</button>` : '';
+  if (cp) cp.innerHTML = hasMorePRs
+    ? `<button id="load-more-prs-btn" class="btn" onclick="loadMorePRs()" style="width:100%;justify-content:center;margin:12px 0">Load more PRs (${prs.length} loaded)</button>` : '';
 }
 async function fetchCommitDetail(sha) {
   if (commitDetailCache.has(sha)) return commitDetailCache.get(sha);
@@ -2117,6 +2193,180 @@ function clearCache() {
   updateCacheStats();
   renderCommitList(); renderRightPanels();
   toast('🗑️','Cache cleared','All analysis data removed');
+}
+
+// ── REPORT GENERATOR ─────────────────────────────────────────────────────────
+function openReportModal() {
+  const today = new Date().toISOString().slice(0,10);
+  const monthAgo = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  document.getElementById('report-from').value = monthAgo;
+  document.getElementById('report-to').value = today;
+  document.getElementById('report-client').value = '';
+  document.getElementById('report-status').textContent = '';
+  const btn = document.getElementById('report-gen-btn');
+  btn.disabled = false; btn.textContent = 'Generate with AI';
+  const modal = document.getElementById('report-modal');
+  modal.style.display = 'flex';
+}
+function closeReportModal() {
+  document.getElementById('report-modal').style.display = 'none';
+}
+async function generateReport() {
+  const key = getKey();
+  if (!key) { toast('🔑','API Key Required','Add your Anthropic key in Settings'); return; }
+  const from  = document.getElementById('report-from').value;
+  const to    = document.getElementById('report-to').value;
+  const client = document.getElementById('report-client').value.trim() || currentRepo?.full_name || 'Project';
+  if (!from || !to) { toast('⚠️','Dates required','Pick a from and to date'); return; }
+
+  const fromDate = new Date(from);
+  const toDate   = new Date(to + 'T23:59:59');
+  const btn = document.getElementById('report-gen-btn');
+  const status = document.getElementById('report-status');
+  btn.disabled = true;
+  status.textContent = 'Analysing commits and PRs...';
+
+  const periodCommits = commits.filter(c => {
+    const d = new Date(c.commit.author.date);
+    return d >= fromDate && d <= toDate;
+  });
+  const periodPRs = prs.filter(p => {
+    const d = new Date(p.created_at);
+    return d >= fromDate && d <= toDate;
+  });
+
+  const mergedPRs   = periodPRs.filter(p => p.merged_at);
+  const openPRs     = periodPRs.filter(p => p.state === 'open');
+  const features    = periodCommits.filter(c => detectType(c.commit.message) === 'Feature');
+  const bugfixes    = periodCommits.filter(c => detectType(c.commit.message) === 'Bug Fix');
+  const authors     = [...new Set(periodCommits.map(c => c.commit.author.name))];
+
+  const prSummary = mergedPRs.slice(0,15).map(p =>
+    `PR #${p.number}: ${p.title} (by ${p.user.login}${p.merged_at ? ', merged '+new Date(p.merged_at).toDateString() : ''})`
+  ).join('\n');
+  const commitSummary = periodCommits.slice(0,30).map(c =>
+    `[${detectType(c.commit.message)}] ${c.commit.message.split('\n')[0]} — ${c.commit.author.name}`
+  ).join('\n');
+
+  const prompt = `You are writing a professional project status report for a CLIENT MEETING. The audience is a non-technical manager or client — no code, no jargon, no git terminology.\n\nProject: ${client}\nRepository: ${currentRepo?.full_name}\nPeriod: ${from} to ${to}\n\nData:\n- Total commits in period: ${periodCommits.length}\n- Contributors: ${authors.join(', ')}\n- PRs merged: ${mergedPRs.length}\n- PRs still open: ${openPRs.length}\n- Feature commits: ${features.length}\n- Bug fixes: ${bugfixes.length}\n\nMerged PRs:\n${prSummary||'None'}\n\nCommit log:\n${commitSummary||'None'}\n\nWrite a JSON object with exactly these keys:\n"executive_summary": 2-3 sentence paragraph summarising what was achieved this period in plain business language\n"features_shipped": array of strings, each a plain-English sentence describing one feature or improvement delivered (max 8 items, derived from Feature commits and merged PRs)\n"issues_resolved": array of strings, each describing a bug or issue that was fixed in plain language (max 6 items)\n"team_highlights": 2-3 sentences about the team: who contributed, how active the period was, any notable delivery pace\n"in_progress": array of strings describing open PRs as work in progress, in plain language (max 5 items)\n"period_label": short string like "April 2026" or "Q1 Sprint 3"\n\nRules: No em dashes, no bullet symbols, no markdown, no technical jargon, no SHAs, no branch names. Write as if presenting to a client who does not know what git is. Return ONLY valid JSON.`;
+
+  try {
+    status.textContent = 'Claude is writing your report...';
+    const res = await fetch(CLAUDE, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({model:MODEL, max_tokens:2000, messages:[{role:'user',content:prompt}]})
+    });
+    if (!res.ok) throw new Error('Claude API error');
+    const data = await res.json();
+    let raw = data.content[0].text.trim();
+    if (raw.startsWith('```')) raw = raw.split('\n').slice(1,-1).join('\n').trim();
+    const r = JSON.parse(raw);
+    status.textContent = 'Building document...';
+    downloadReport(r, client, from, to, periodCommits.length, mergedPRs.length, openPRs.length, authors);
+    closeReportModal();
+    toast('✅','Report ready','Document downloaded');
+  } catch(e) {
+    status.textContent = 'Failed: ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+function downloadReport(r, client, from, to, totalCommits, mergedPRs, openPRs, authors) {
+  const now = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const fmtD = d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const listItems = arr => (arr||[]).map(s=>`<li>${esc(s)}</li>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(client)} — Progress Report</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a2e;background:#fff;max-width:800px;margin:0 auto;padding:48px 40px}
+  @media print{body{padding:20px}}
+  .header{border-bottom:3px solid #1a1a2e;padding-bottom:20px;margin-bottom:32px}
+  .badge{display:inline-block;background:#1a1a2e;color:#fff;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px}
+  h1{font-size:28px;font-weight:700;color:#1a1a2e;margin-bottom:6px}
+  .period{font-size:14px;color:#666;margin-bottom:4px}
+  .generated{font-size:12px;color:#999}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:28px 0}
+  .kpi{background:#f8f8f8;border-radius:10px;padding:16px;text-align:center}
+  .kpi-value{font-size:28px;font-weight:700;color:#1a1a2e}
+  .kpi-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.6px;margin-top:4px}
+  .section{margin-bottom:28px}
+  h2{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #eee}
+  .exec{font-size:15px;line-height:1.7;color:#333;background:#fffbf0;border-left:4px solid #c9a84c;padding:16px 20px;border-radius:0 8px 8px 0}
+  ul{padding-left:20px;display:flex;flex-direction:column;gap:8px}
+  li{font-size:14px;line-height:1.6;color:#333}
+  li::marker{color:#c9a84c}
+  .tag{display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:11px;padding:2px 8px;border-radius:4px;margin-right:4px;font-weight:600}
+  .tag.fix{background:#fce4ec;color:#c62828}
+  .tag.wip{background:#e3f2fd;color:#1565c0}
+  .team-box{background:#f8f8f8;border-radius:10px;padding:16px 20px;font-size:14px;line-height:1.7;color:#333}
+  .contributors{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .av-chip{background:#1a1a2e;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  .footer{margin-top:40px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#bbb;text-align:center}
+  .print-btn{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
+  @media print{.print-btn{display:none}}
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+<div class="header">
+  <div class="badge">Progress Report</div>
+  <h1>${esc(client)}</h1>
+  <div class="period">${fmtD(from)} — ${fmtD(to)}</div>
+  <div class="generated">Generated on ${now} via Git Digest</div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="kpi-value">${totalCommits}</div><div class="kpi-label">Commits</div></div>
+  <div class="kpi"><div class="kpi-value">${mergedPRs}</div><div class="kpi-label">Delivered</div></div>
+  <div class="kpi"><div class="kpi-value">${openPRs}</div><div class="kpi-label">In Progress</div></div>
+  <div class="kpi"><div class="kpi-value">${authors.length}</div><div class="kpi-label">Contributors</div></div>
+</div>
+
+<div class="section">
+  <h2>Executive Summary</h2>
+  <div class="exec">${esc(r.executive_summary||'')}</div>
+</div>
+
+${r.features_shipped?.length ? `<div class="section">
+  <h2>Features & Improvements Delivered</h2>
+  <ul>${(r.features_shipped||[]).map(s=>`<li><span class="tag">New</span>${esc(s)}</li>`).join('')}</ul>
+</div>` : ''}
+
+${r.issues_resolved?.length ? `<div class="section">
+  <h2>Issues Resolved</h2>
+  <ul>${(r.issues_resolved||[]).map(s=>`<li><span class="tag fix">Fixed</span>${esc(s)}</li>`).join('')}</ul>
+</div>` : ''}
+
+${r.in_progress?.length ? `<div class="section">
+  <h2>Work In Progress</h2>
+  <ul>${(r.in_progress||[]).map(s=>`<li><span class="tag wip">WIP</span>${esc(s)}</li>`).join('')}</ul>
+</div>` : ''}
+
+<div class="section">
+  <h2>Team</h2>
+  <div class="team-box">
+    ${esc(r.team_highlights||'')}
+    <div class="contributors">${authors.map(a=>`<div class="av-chip" title="${esc(a)}">${(a||'?')[0].toUpperCase()}</div>`).join('')}</div>
+  </div>
+</div>
+
+<div class="footer">Prepared with Git Digest &nbsp;·&nbsp; ${esc(currentRepo?.full_name||'')} &nbsp;·&nbsp; ${now}</div>
+</body></html>`;
+
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `report-${client.replace(/[^a-z0-9]/gi,'-').toLowerCase()}-${from}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function disconnectRepo() { backToRepos(); toast('🔌','Switched','Back to repo picker'); }
