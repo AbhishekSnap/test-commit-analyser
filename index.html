@@ -834,6 +834,11 @@ GITHUB_TOKEN:      auto-provided by GitHub
     <button onclick="closeReportModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1">✕</button>
     <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">Generate Client Report</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:20px">AI-written plain-English summary of work done — ready to download and present</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn" onclick="reportPreset('30')" style="font-size:11px;padding:5px 12px">Last 30 days</button>
+      <button class="btn" onclick="reportPreset('90')" style="font-size:11px;padding:5px 12px">Last 90 days</button>
+      <button class="btn" onclick="reportPreset('0')" style="font-size:11px;padding:5px 12px">All time</button>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div>
         <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">From</div>
@@ -2196,17 +2201,27 @@ function clearCache() {
 }
 
 // ── REPORT GENERATOR ─────────────────────────────────────────────────────────
-function openReportModal() {
+function reportPreset(days) {
   const today = new Date().toISOString().slice(0,10);
-  const monthAgo = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
-  document.getElementById('report-from').value = monthAgo;
   document.getElementById('report-to').value = today;
+  if (days === '0') {
+    const earliest = commits.length
+      ? commits[commits.length-1].commit.author.date.slice(0,10)
+      : new Date(Date.now()-365*86400000).toISOString().slice(0,10);
+    document.getElementById('report-from').value = earliest;
+  } else {
+    const past = new Date(Date.now() - Number(days)*86400000).toISOString().slice(0,10);
+    document.getElementById('report-from').value = past;
+  }
+}
+function openReportModal() {
+  reportPreset('30');
   document.getElementById('report-client').value = '';
   document.getElementById('report-status').textContent = '';
   const btn = document.getElementById('report-gen-btn');
-  btn.disabled = false; btn.textContent = 'Generate with AI';
-  const modal = document.getElementById('report-modal');
-  modal.style.display = 'flex';
+  btn.disabled = false;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> Generate with AI';
+  document.getElementById('report-modal').style.display = 'flex';
 }
 function closeReportModal() {
   document.getElementById('report-modal').style.display = 'none';
@@ -2214,14 +2229,14 @@ function closeReportModal() {
 async function generateReport() {
   const key = getKey();
   if (!key) { toast('🔑','API Key Required','Add your Anthropic key in Settings'); return; }
-  const from  = document.getElementById('report-from').value;
-  const to    = document.getElementById('report-to').value;
+  const from   = document.getElementById('report-from').value;
+  const to     = document.getElementById('report-to').value;
   const client = document.getElementById('report-client').value.trim() || currentRepo?.full_name || 'Project';
   if (!from || !to) { toast('⚠️','Dates required','Pick a from and to date'); return; }
 
   const fromDate = new Date(from);
   const toDate   = new Date(to + 'T23:59:59');
-  const btn = document.getElementById('report-gen-btn');
+  const btn    = document.getElementById('report-gen-btn');
   const status = document.getElementById('report-status');
   btn.disabled = true;
   status.textContent = 'Analysing commits and PRs...';
@@ -2235,35 +2250,73 @@ async function generateReport() {
     return d >= fromDate && d <= toDate;
   });
 
-  const mergedPRs   = periodPRs.filter(p => p.merged_at);
-  const openPRs     = periodPRs.filter(p => p.state === 'open');
-  const features    = periodCommits.filter(c => detectType(c.commit.message) === 'Feature');
-  const bugfixes    = periodCommits.filter(c => detectType(c.commit.message) === 'Bug Fix');
-  const authors     = [...new Set(periodCommits.map(c => c.commit.author.name))];
+  const mergedPRs = periodPRs.filter(p => p.merged_at);
+  const openPRs   = periodPRs.filter(p => p.state === 'open');
+  const features  = periodCommits.filter(c => detectType(c.commit.message) === 'Feature');
+  const bugfixes  = periodCommits.filter(c => detectType(c.commit.message) === 'Bug Fix');
+  const authors   = [...new Set(periodCommits.map(c => c.commit.author.name))];
 
-  const prSummary = mergedPRs.slice(0,15).map(p =>
-    `PR #${p.number}: ${p.title} (by ${p.user.login}${p.merged_at ? ', merged '+new Date(p.merged_at).toDateString() : ''})`
+  // per-author commit counts
+  const authorCounts = {};
+  periodCommits.forEach(c => { const a = c.commit.author.name; authorCounts[a] = (authorCounts[a]||0)+1; });
+
+  // weekly breakdown (last 8 weeks or full period)
+  const weekBuckets = {};
+  periodCommits.forEach(c => {
+    const d = new Date(c.commit.author.date);
+    const monday = new Date(d); monday.setDate(d.getDate() - ((d.getDay()+6)%7));
+    const wk = monday.toISOString().slice(0,10);
+    if (!weekBuckets[wk]) weekBuckets[wk] = {commits:0, features:0, fixes:0};
+    weekBuckets[wk].commits++;
+    const t = detectType(c.commit.message);
+    if (t === 'Feature') weekBuckets[wk].features++;
+    if (t === 'Bug Fix') weekBuckets[wk].fixes++;
+  });
+  const weekRows = Object.entries(weekBuckets).sort((a,b)=>a[0].localeCompare(b[0])).slice(-10);
+
+  // avg PR merge time in days
+  let avgMergeHrs = 0;
+  const mergedWithTime = mergedPRs.filter(p => p.created_at && p.merged_at);
+  if (mergedWithTime.length) {
+    avgMergeHrs = Math.round(mergedWithTime.reduce((s,p)=>{
+      return s + (new Date(p.merged_at)-new Date(p.created_at)) / 3600000;
+    },0) / mergedWithTime.length);
+  }
+
+  const prSummary = mergedPRs.slice(0,20).map(p =>
+    `PR "${p.title}" by ${p.user.login}, merged ${new Date(p.merged_at).toDateString()}`
   ).join('\n');
-  const commitSummary = periodCommits.slice(0,30).map(c =>
+  const commitSummary = periodCommits.slice(0,40).map(c =>
     `[${detectType(c.commit.message)}] ${c.commit.message.split('\n')[0]} — ${c.commit.author.name}`
   ).join('\n');
+  const openPRSummary = openPRs.slice(0,10).map(p => `"${p.title}" by ${p.user.login}`).join('\n');
 
-  const prompt = `You are writing a professional project status report for a CLIENT MEETING. The audience is a non-technical manager or client — no code, no jargon, no git terminology.\n\nProject: ${client}\nRepository: ${currentRepo?.full_name}\nPeriod: ${from} to ${to}\n\nData:\n- Total commits in period: ${periodCommits.length}\n- Contributors: ${authors.join(', ')}\n- PRs merged: ${mergedPRs.length}\n- PRs still open: ${openPRs.length}\n- Feature commits: ${features.length}\n- Bug fixes: ${bugfixes.length}\n\nMerged PRs:\n${prSummary||'None'}\n\nCommit log:\n${commitSummary||'None'}\n\nWrite a JSON object with exactly these keys:\n"executive_summary": 2-3 sentence paragraph summarising what was achieved this period in plain business language\n"features_shipped": array of strings, each a plain-English sentence describing one feature or improvement delivered (max 8 items, derived from Feature commits and merged PRs)\n"issues_resolved": array of strings, each describing a bug or issue that was fixed in plain language (max 6 items)\n"team_highlights": 2-3 sentences about the team: who contributed, how active the period was, any notable delivery pace\n"in_progress": array of strings describing open PRs as work in progress, in plain language (max 5 items)\n"period_label": short string like "April 2026" or "Q1 Sprint 3"\n\nRules: No em dashes, no bullet symbols, no markdown, no technical jargon, no SHAs, no branch names. Write as if presenting to a client who does not know what git is. Return ONLY valid JSON.`;
+  const prompt = `You are writing a detailed professional project status report for a CLIENT MEETING. Audience: non-technical manager or client. No code, no jargon, no git terminology, no branch names, no commit hashes.\n\nProject: ${client}\nRepository: ${currentRepo?.full_name}\nPeriod: ${from} to ${to}\n\nKey metrics:\n- Total changes delivered: ${periodCommits.length} updates\n- Team members: ${authors.join(', ')}\n- Items delivered (merged): ${mergedPRs.length}\n- Items in progress (open): ${openPRs.length}\n- New features: ${features.length}\n- Bug fixes: ${bugfixes.length}\n- Average delivery cycle: ${avgMergeHrs > 0 ? (avgMergeHrs < 24 ? avgMergeHrs + ' hours' : Math.round(avgMergeHrs/24) + ' days') : 'N/A'}\n\nDelivered items:\n${prSummary||'None'}\n\nWork log summary:\n${commitSummary||'None'}\n\nOpen / in progress:\n${openPRSummary||'None'}\n\nReturn a JSON object with EXACTLY these keys:\n"period_label": short string like "April 2026" or "Q1 2026"\n"executive_summary": 3-4 sentence paragraph of what was achieved overall — confident, positive, professional tone\n"key_metrics_narrative": 2-3 sentences interpreting the numbers in business terms (pace of delivery, team size, efficiency)\n"features_shipped": array of objects, each with "title" (5-8 words) and "description" (1-2 full sentences in plain English explaining the business value). Max 8 items.\n"issues_resolved": array of strings, each a plain-English description of a problem that was fixed. Max 6 items.\n"in_progress": array of strings describing what is currently being worked on, in plain language. Max 5 items.\n"recommendations": array of 2-3 strings, each a short actionable suggestion for the team or stakeholders based on the data — things like pace, review process, priorities.\n"process_health": 2-3 sentences assessing the team delivery process — are reviews happening, is the pace sustainable, any patterns noticed?\n"team_highlights": 2-3 sentences about the team contributions — who led delivery, any standout effort, overall collaboration tone.\n"risk_summary": 1-2 sentences about any risks visible in the data — open items piling up, slow reviews, single-contributor risk, etc. If no risks, say the project looks healthy.\n\nRules: No em dashes, no bullet symbols, no markdown, no technical jargon. Use plain commas and colons. Return ONLY valid JSON with no extra text.`;
 
   try {
     status.textContent = 'Claude is writing your report...';
     const res = await fetch(CLAUDE, {
       method: 'POST',
       headers: {'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({model:MODEL, max_tokens:2000, messages:[{role:'user',content:prompt}]})
+      body: JSON.stringify({model:MODEL, max_tokens:3000, messages:[{role:'user',content:prompt}]})
     });
-    if (!res.ok) throw new Error('Claude API error');
+    if (!res.ok) throw new Error('Claude API error ' + res.status);
     const data = await res.json();
     let raw = data.content[0].text.trim();
     if (raw.startsWith('```')) raw = raw.split('\n').slice(1,-1).join('\n').trim();
     const r = JSON.parse(raw);
     status.textContent = 'Building document...';
-    downloadReport(r, client, from, to, periodCommits.length, mergedPRs.length, openPRs.length, authors);
+    downloadReport(r, client, from, to, {
+      totalCommits: periodCommits.length,
+      mergedCount: mergedPRs.length,
+      openCount: openPRs.length,
+      featureCount: features.length,
+      bugCount: bugfixes.length,
+      avgMergeHrs,
+      authors,
+      authorCounts,
+      weekRows
+    });
     closeReportModal();
     toast('✅','Report ready','Document downloaded');
   } catch(e) {
@@ -2272,10 +2325,20 @@ async function generateReport() {
   }
 }
 
-function downloadReport(r, client, from, to, totalCommits, mergedPRs, openPRs, authors) {
-  const now = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+function downloadReport(r, client, from, to, stats) {
+  const {totalCommits, mergedCount, openCount, featureCount, bugCount, avgMergeHrs, authors, authorCounts, weekRows} = stats;
+  const now  = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const fmtD = d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  const listItems = arr => (arr||[]).map(s=>`<li>${esc(s)}</li>`).join('');
+  const avgMergeFmt = avgMergeHrs > 0 ? (avgMergeHrs < 24 ? avgMergeHrs+'h' : Math.round(avgMergeHrs/24)+'d') : 'N/A';
+
+  const weekTableRows = weekRows.map(([wk, v]) => {
+    const label = new Date(wk).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    return `<tr><td>${label}</td><td>${v.commits}</td><td>${v.features}</td><td>${v.fixes}</td></tr>`;
+  }).join('');
+
+  const authorRows = Object.entries(authorCounts).sort((a,b)=>b[1]-a[1]).map(([name,cnt]) =>
+    `<tr><td><div class="av-chip-sm">${(name||'?')[0].toUpperCase()}</div> ${esc(name)}</td><td>${cnt}</td></tr>`
+  ).join('');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -2285,48 +2348,67 @@ function downloadReport(r, client, from, to, totalCommits, mergedPRs, openPRs, a
 <title>${esc(client)} — Progress Report</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a2e;background:#fff;max-width:800px;margin:0 auto;padding:48px 40px}
-  @media print{body{padding:20px}}
-  .header{border-bottom:3px solid #1a1a2e;padding-bottom:20px;margin-bottom:32px}
-  .badge{display:inline-block;background:#1a1a2e;color:#fff;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px}
-  h1{font-size:28px;font-weight:700;color:#1a1a2e;margin-bottom:6px}
-  .period{font-size:14px;color:#666;margin-bottom:4px}
-  .generated{font-size:12px;color:#999}
-  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:28px 0}
-  .kpi{background:#f8f8f8;border-radius:10px;padding:16px;text-align:center}
-  .kpi-value{font-size:28px;font-weight:700;color:#1a1a2e}
-  .kpi-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.6px;margin-top:4px}
-  .section{margin-bottom:28px}
-  h2{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #eee}
-  .exec{font-size:15px;line-height:1.7;color:#333;background:#fffbf0;border-left:4px solid #c9a84c;padding:16px 20px;border-radius:0 8px 8px 0}
-  ul{padding-left:20px;display:flex;flex-direction:column;gap:8px}
-  li{font-size:14px;line-height:1.6;color:#333}
-  li::marker{color:#c9a84c}
-  .tag{display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:11px;padding:2px 8px;border-radius:4px;margin-right:4px;font-weight:600}
-  .tag.fix{background:#fce4ec;color:#c62828}
-  .tag.wip{background:#e3f2fd;color:#1565c0}
-  .team-box{background:#f8f8f8;border-radius:10px;padding:16px 20px;font-size:14px;line-height:1.7;color:#333}
-  .contributors{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-  .av-chip{background:#1a1a2e;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
-  .footer{margin-top:40px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#bbb;text-align:center}
-  .print-btn{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
-  @media print{.print-btn{display:none}}
+  body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#1a1a2e;background:#fff;max-width:860px;margin:0 auto;padding:48px 40px;font-size:14px}
+  @media print{body{padding:20px}.print-btn{display:none!important}}
+  .header{border-bottom:3px solid #1a1a2e;padding-bottom:24px;margin-bottom:32px}
+  .badge{display:inline-block;background:#1a1a2e;color:#fff;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
+  h1{font-size:30px;font-weight:700;color:#1a1a2e;margin-bottom:6px;line-height:1.2}
+  .period{font-size:13px;color:#666;margin-bottom:3px}
+  .generated{font-size:11px;color:#aaa}
+  .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:28px 0}
+  @media(max-width:700px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
+  .kpi{background:#f5f5f7;border-radius:10px;padding:14px 10px;text-align:center}
+  .kpi-value{font-size:24px;font-weight:700;color:#1a1a2e;line-height:1}
+  .kpi-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.7px;margin-top:5px}
+  .section{margin-bottom:32px}
+  h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid #eee}
+  .exec{font-size:15px;line-height:1.75;color:#222;background:#fffbf0;border-left:4px solid #c9a84c;padding:18px 22px;border-radius:0 10px 10px 0}
+  .narrative{font-size:14px;line-height:1.7;color:#444;background:#f5f5f7;padding:16px 20px;border-radius:8px}
+  .feature-grid{display:flex;flex-direction:column;gap:12px}
+  .feature-card{border:1px solid #e8e8e8;border-radius:10px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+  .f-tag{background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;white-space:nowrap;margin-top:2px}
+  .f-tag.fix{background:#fce4ec;color:#c62828}
+  .f-tag.wip{background:#e3f2fd;color:#1565c0}
+  .f-title{font-weight:600;font-size:13px;color:#1a1a2e;margin-bottom:3px}
+  .f-desc{font-size:13px;color:#555;line-height:1.6}
+  ul.plain{padding-left:18px;display:flex;flex-direction:column;gap:8px}
+  ul.plain li{font-size:14px;line-height:1.6;color:#333}
+  ul.plain li::marker{color:#c9a84c}
+  .rec-list{display:flex;flex-direction:column;gap:10px}
+  .rec-card{background:#f0f4ff;border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.6;color:#1a237e;border-left:3px solid #3949ab}
+  table.data{width:100%;border-collapse:collapse;font-size:13px}
+  table.data th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#999;padding:6px 10px;border-bottom:2px solid #eee}
+  table.data td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
+  table.data tr:last-child td{border-bottom:none}
+  .team-box{background:#f5f5f7;border-radius:10px;padding:16px 20px;font-size:14px;line-height:1.7;color:#333}
+  .av-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  .av-chip{background:#1a1a2e;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+  .av-chip-sm{background:#1a1a2e;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;vertical-align:middle;margin-right:6px}
+  .risk-box{background:#fff8e1;border-left:4px solid #f9a825;border-radius:0 8px 8px 0;padding:14px 18px;font-size:14px;line-height:1.7;color:#555}
+  .two-col-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:600px){.two-col-grid{grid-template-columns:1fr}}
+  .footer{margin-top:48px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#ccc;text-align:center}
+  .print-btn{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;border:none;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .print-btn:hover{background:#2d2d50}
 </style>
 </head>
 <body>
 <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+
 <div class="header">
   <div class="badge">Progress Report</div>
   <h1>${esc(client)}</h1>
-  <div class="period">${fmtD(from)} — ${fmtD(to)}</div>
-  <div class="generated">Generated on ${now} via Git Digest</div>
+  <div class="period">${fmtD(from)} to ${fmtD(to)}${r.period_label ? ' &nbsp;·&nbsp; '+esc(r.period_label) : ''}</div>
+  <div class="generated">Generated on ${now} via Git Digest &nbsp;·&nbsp; ${esc(currentRepo?.full_name||'')}</div>
 </div>
 
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-value">${totalCommits}</div><div class="kpi-label">Commits</div></div>
-  <div class="kpi"><div class="kpi-value">${mergedPRs}</div><div class="kpi-label">Delivered</div></div>
-  <div class="kpi"><div class="kpi-value">${openPRs}</div><div class="kpi-label">In Progress</div></div>
-  <div class="kpi"><div class="kpi-value">${authors.length}</div><div class="kpi-label">Contributors</div></div>
+  <div class="kpi"><div class="kpi-value">${totalCommits}</div><div class="kpi-label">Updates</div></div>
+  <div class="kpi"><div class="kpi-value">${mergedCount}</div><div class="kpi-label">Delivered</div></div>
+  <div class="kpi"><div class="kpi-value">${openCount}</div><div class="kpi-label">In Progress</div></div>
+  <div class="kpi"><div class="kpi-value">${featureCount}</div><div class="kpi-label">Features</div></div>
+  <div class="kpi"><div class="kpi-value">${bugCount}</div><div class="kpi-label">Fixes</div></div>
+  <div class="kpi"><div class="kpi-value">${avgMergeFmt}</div><div class="kpi-label">Avg Cycle</div></div>
 </div>
 
 <div class="section">
@@ -2334,36 +2416,76 @@ function downloadReport(r, client, from, to, totalCommits, mergedPRs, openPRs, a
   <div class="exec">${esc(r.executive_summary||'')}</div>
 </div>
 
+${r.key_metrics_narrative ? `<div class="section">
+  <h2>Delivery Overview</h2>
+  <div class="narrative">${esc(r.key_metrics_narrative)}</div>
+</div>` : ''}
+
 ${r.features_shipped?.length ? `<div class="section">
-  <h2>Features & Improvements Delivered</h2>
-  <ul>${(r.features_shipped||[]).map(s=>`<li><span class="tag">New</span>${esc(s)}</li>`).join('')}</ul>
+  <h2>Features and Improvements Delivered</h2>
+  <div class="feature-grid">${(r.features_shipped||[]).map(f => {
+    if (typeof f === 'string') return `<div class="feature-card"><span class="f-tag">New</span><div><div class="f-title">${esc(f)}</div></div></div>`;
+    return `<div class="feature-card"><span class="f-tag">New</span><div><div class="f-title">${esc(f.title||'')}</div><div class="f-desc">${esc(f.description||'')}</div></div></div>`;
+  }).join('')}</div>
 </div>` : ''}
 
 ${r.issues_resolved?.length ? `<div class="section">
   <h2>Issues Resolved</h2>
-  <ul>${(r.issues_resolved||[]).map(s=>`<li><span class="tag fix">Fixed</span>${esc(s)}</li>`).join('')}</ul>
+  <div class="feature-grid">${(r.issues_resolved||[]).map(s=>`<div class="feature-card"><span class="f-tag fix">Fixed</span><div class="f-desc">${esc(s)}</div></div>`).join('')}</div>
 </div>` : ''}
 
-${r.in_progress?.length ? `<div class="section">
-  <h2>Work In Progress</h2>
-  <ul>${(r.in_progress||[]).map(s=>`<li><span class="tag wip">WIP</span>${esc(s)}</li>`).join('')}</ul>
+${weekRows.length > 1 ? `<div class="section">
+  <h2>Weekly Activity</h2>
+  <table class="data">
+    <thead><tr><th>Week of</th><th>Total Changes</th><th>New Features</th><th>Bug Fixes</th></tr></thead>
+    <tbody>${weekTableRows}</tbody>
+  </table>
 </div>` : ''}
 
-<div class="section">
-  <h2>Team</h2>
-  <div class="team-box">
-    ${esc(r.team_highlights||'')}
-    <div class="contributors">${authors.map(a=>`<div class="av-chip" title="${esc(a)}">${(a||'?')[0].toUpperCase()}</div>`).join('')}</div>
+<div class="two-col-grid section">
+  <div>
+    <h2>Team</h2>
+    <div class="team-box">
+      ${esc(r.team_highlights||'')}
+      <div class="av-row">${authors.map(a=>`<div class="av-chip" title="${esc(a)}">${(a||'?')[0].toUpperCase()}</div>`).join('')}</div>
+    </div>
+  </div>
+  <div>
+    <h2>Contribution Breakdown</h2>
+    <table class="data">
+      <thead><tr><th>Team Member</th><th>Updates</th></tr></thead>
+      <tbody>${authorRows}</tbody>
+    </table>
   </div>
 </div>
 
-<div class="footer">Prepared with Git Digest &nbsp;·&nbsp; ${esc(currentRepo?.full_name||'')} &nbsp;·&nbsp; ${now}</div>
+${r.process_health ? `<div class="section">
+  <h2>Process Health</h2>
+  <div class="narrative">${esc(r.process_health)}</div>
+</div>` : ''}
+
+${r.in_progress?.length ? `<div class="section">
+  <h2>Currently In Progress</h2>
+  <div class="feature-grid">${(r.in_progress||[]).map(s=>`<div class="feature-card"><span class="f-tag wip">WIP</span><div class="f-desc">${esc(s)}</div></div>`).join('')}</div>
+</div>` : ''}
+
+${r.recommendations?.length ? `<div class="section">
+  <h2>Recommendations</h2>
+  <div class="rec-list">${(r.recommendations||[]).map(s=>`<div class="rec-card">${esc(s)}</div>`).join('')}</div>
+</div>` : ''}
+
+${r.risk_summary ? `<div class="section">
+  <h2>Risk and Attention Areas</h2>
+  <div class="risk-box">${esc(r.risk_summary)}</div>
+</div>` : ''}
+
+<div class="footer">Prepared with Git Digest &nbsp;·&nbsp; ${now}</div>
 </body></html>`;
 
   const blob = new Blob([html], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
   a.download = `report-${client.replace(/[^a-z0-9]/gi,'-').toLowerCase()}-${from}.html`;
   a.click();
   URL.revokeObjectURL(url);
