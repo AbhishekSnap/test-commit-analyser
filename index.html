@@ -2238,16 +2238,23 @@ async function generateReport() {
   const status = document.getElementById('report-status');
   btn.disabled = true;
 
-  // Auto-fetch all remaining commit pages so "All time" is truly complete
+  // Fetch enough commit pages to cover the selected date range.
+  // GitHub returns commits newest-first, so stop once the oldest commit
+  // in the batch is already before fromDate — no earlier pages can help.
   if (hasMoreCommits) {
-    status.textContent = `Loading all commits (${commits.length} so far)...`;
     const q = currentBranch ? `&sha=${encodeURIComponent(currentBranch)}` : '';
-    while (hasMoreCommits) {
+    let oldestLoaded = commits.length
+      ? new Date(commits[commits.length-1].commit.author.date)
+      : new Date();
+    while (hasMoreCommits && oldestLoaded >= fromDate) {
+      status.textContent = `Loading commits (${commits.length} so far)...`;
       commitPage++;
       const batch = await ghFetch(`${API}/commits?per_page=${PAGE_SIZE_COMMITS}&page=${commitPage}${q}`);
       commits = commits.concat(batch);
       hasMoreCommits = batch.length === PAGE_SIZE_COMMITS;
-      status.textContent = `Loading all commits (${commits.length} so far)...`;
+      if (batch.length) {
+        oldestLoaded = new Date(batch[batch.length-1].commit.author.date);
+      }
     }
     renderCommitList(); renderRightPanels(); updateStats(); renderLoadMore();
   }
