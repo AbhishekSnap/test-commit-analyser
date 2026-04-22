@@ -732,6 +732,12 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
 
   <!-- SETTINGS VIEW -->
   <div class="view" id="view-settings">
+    <div style="margin-bottom:20px">
+      <button class="btn" onclick="switchView(previousView)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Back
+      </button>
+    </div>
     <div class="settings-grid">
       <div class="sc">
         <div class="sc-title">Anthropic API Key</div>
@@ -836,6 +842,7 @@ let API         = '';
 
 let commits = [], prs = [];
 let currentView = 'commits';
+let previousView = 'commits';
 let searchQ = '', commitFilter = 'All', prFilter = 'All';
 let currentBranch = '';
 let lastFetchedAt = null;
@@ -899,7 +906,7 @@ function typeCls(t) {
 }
 function riskCls(r) { if(!r)return''; r=r.toLowerCase(); if(r.startsWith('high'))return'risk-high'; if(r.startsWith('med'))return'risk-medium'; return''; }
 function riskColor(r) { if(!r)return'risk-teal'; r=r.toLowerCase(); if(r.startsWith('high'))return'risk-red'; if(r.startsWith('med'))return'risk-amber'; return'risk-teal'; }
-function isSecurityFile(fname) { return /auth|secret|password|token|crypto|ssl|cert|key|credential/i.test(fname); }
+function isSecurityFile(fname) { return /secret|password|credential|private[_-]?key|api[_-]?key|\.pem$|\.key$|\.pfx$|\.p12$|oauth|jwt|crypto|ssl|\.env/i.test(fname); }
 function hasSecurityTouch(files) { return (files||[]).some(f=>isSecurityFile(f.filename)); }
 
 // ── TOAST ────────────────────────────────────────────────────────────────────
@@ -2017,6 +2024,7 @@ const VIEW_META = {
   settings: {title:'Settings',      badge:'Config'},
 };
 function switchView(v) {
+  if (v !== currentView) previousView = currentView;
   currentView = v;
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
