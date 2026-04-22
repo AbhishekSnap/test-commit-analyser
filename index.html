@@ -129,18 +129,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .commit-card.expanded{background:var(--s2)}
 .commit-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer}
 .commit-msg{font-weight:600;font-size:14px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.commit-meta{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.sha-pill{font-family:var(--mono);font-size:11px;color:var(--blue);background:var(--s3);padding:2px 7px;border-radius:4px}
+.commit-meta{display:flex;align-items:center;gap:8px;flex-shrink:0;width:340px}
+.sha-pill{font-family:var(--mono);font-size:11px;color:var(--blue);background:var(--s3);padding:2px 7px;border-radius:4px;width:62px;text-align:center;flex-shrink:0}
 .av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
-.author-n{font-size:12px;color:var(--text2)}
-.tago{font-size:11px;color:var(--text3);white-space:nowrap}
+.author-n{font-size:12px;color:var(--text2);width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.tago{font-size:11px;color:var(--text3);white-space:nowrap;width:52px;text-align:right;flex-shrink:0}
 .qdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .qdot.good{background:#4ADE80}
 .qdot.needs{background:var(--amber)}
 .qdot.spin-dot{background:transparent;border:2px solid var(--text3);border-top-color:var(--gold);animation:spin .8s linear infinite}
 
 /* TYPE BADGE */
-.tbadge{font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap;flex-shrink:0}
+.tbadge{font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap;flex-shrink:0;min-width:64px;text-align:center}
 .t-feature{background:var(--teal-dim);color:var(--teal)}
 .t-bugfix{background:var(--red-dim);color:var(--red)}
 .t-refactor{background:var(--gold-dim);color:var(--gold)}
@@ -219,9 +219,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .pr-card:hover{background:var(--s2)}
 .pr-card.expanded{background:var(--s2)}
 .pr-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
-.pr-num{font-family:var(--mono);font-size:13px;color:var(--gold);flex-shrink:0;width:36px}
+.pr-num{font-family:var(--mono);font-size:13px;color:var(--gold);flex-shrink:0;width:42px}
 .pr-title{font-weight:600;font-size:14px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pr-meta{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.pr-meta{display:flex;align-items:center;gap:8px;flex-shrink:0;width:320px}
 .sbadge{font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 9px;border-radius:var(--r-pill)}
 .s-open{background:var(--teal-dim);color:var(--teal)}
 .s-merged{background:var(--gold-dim);color:var(--gold)}
@@ -1405,7 +1405,7 @@ function prCard(p) {
       <div class="pr-meta">
         <div class="av" style="background:${avatarColor(p.user.login)}">${avatarInitial(p.user.login)}</div>
         <span class="author-n">${esc(p.user.login)}</span>
-        <span class="branch-lbl">→ ${esc(p.base.ref)}</span>
+        <span class="branch-lbl" style="max-width:90px;overflow:hidden;text-overflow:ellipsis">→ ${esc(p.base.ref)}</span>
         ${prStatusLabel(p)}
         <span class="tago">${timeAgo(p.created_at)}</span>
       </div>
