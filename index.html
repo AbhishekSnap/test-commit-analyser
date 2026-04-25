@@ -2854,9 +2854,14 @@ async function markAllRead() {
 let issues = [], issueFilter = 'open', issuesLoaded = false;
 async function fetchIssueCount() {
   try {
-    const count = currentRepo?.open_issues_count || 0;
+    const h = {'Accept':'application/vnd.github+json'};
+    if (ghToken) h['Authorization'] = 'Bearer ' + ghToken;
+    const r = await fetch(`${API}/issues?state=open&per_page=50`, {headers:h});
+    if (!r.ok) return;
+    const data = await r.json();
+    const count = data.filter(i => !i.pull_request).length;
     const badge = document.getElementById('nav-issues-count');
-    if (badge && count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.style.display = 'inline'; }
+    if (badge) { badge.textContent = count > 99 ? '99+' : count; badge.style.display = count > 0 ? 'inline' : 'none'; }
   } catch(_) {}
 }
 async function fetchIssues() {
