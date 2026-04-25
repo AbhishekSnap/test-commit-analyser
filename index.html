@@ -233,6 +233,29 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .pr-fname{font-family:var(--mono);color:var(--text2);flex:1;font-size:11px}
 .fadd{color:#4ADE80;font-family:var(--mono);font-size:11px}
 .fdel{color:var(--red);font-family:var(--mono);font-size:11px}
+/* ── Diff viewer ── */
+.diff-file{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden}
+.diff-file-hdr{background:var(--s2);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;user-select:none}
+.diff-file-hdr:hover{background:var(--s3)}
+.diff-fname-mono{font-family:var(--mono);color:var(--text);flex:1;font-size:11px}
+.diff-body{overflow-x:auto;max-height:320px;overflow-y:auto}
+.diff-line{padding:1px 12px;font-family:var(--mono);font-size:11px;line-height:1.6;white-space:pre;display:block}
+.diff-line.add{background:rgba(74,222,128,.1);color:#4ADE80}
+.diff-line.del{background:rgba(248,113,113,.1);color:var(--red)}
+.diff-line.hunk{background:var(--s2);color:var(--text3)}
+.diff-line.ctx{color:var(--text2)}
+/* ── Branch view ── */
+.branch-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-bottom:8px;transition:border-color .15s}
+.branch-card:hover{border-color:var(--border2)}
+.branch-name{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.branch-meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.branch-stat{font-size:11px;color:var(--text3)}
+.branch-ahead{color:#4ADE80;font-size:11px;font-weight:600}
+.branch-behind{color:var(--red);font-size:11px;font-weight:600}
+.branch-pr-badge{font-size:10px;padding:2px 8px;border-radius:var(--r-pill);background:var(--teal-dim);color:var(--teal);font-weight:600}
+.branch-default-badge{font-size:10px;padding:2px 8px;border-radius:var(--r-pill);background:var(--gold-dim);color:var(--gold);font-weight:600}
+.branch-stale{font-size:10px;padding:2px 8px;border-radius:var(--r-pill);background:var(--red-dim);color:var(--red);font-weight:600}
+.branch-actions{display:flex;gap:6px;flex-shrink:0}
 .rev-badge{font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 8px;border-radius:var(--r-pill)}
 .rev-approved{background:var(--teal-dim);color:var(--teal)}
 .rev-changes{background:var(--red-dim);color:var(--red)}
@@ -530,20 +553,24 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
   </div>
   <nav class="sidebar-nav">
     <div class="nav-label">Analysis</div>
-    <div class="nav-item active" onclick="switchView('commits')">
+    <div class="nav-item active" data-view="commits" onclick="switchView('commits')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
       Commits
     </div>
-    <div class="nav-item" onclick="switchView('prs')">
+    <div class="nav-item" data-view="prs" onclick="switchView('prs')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 012 2v7M6 9v12"/></svg>
       Pull Requests
     </div>
-    <div class="nav-item" onclick="switchView('insights')">
+    <div class="nav-item" data-view="insights" onclick="switchView('insights')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Insights
     </div>
+    <div class="nav-item" data-view="branches" onclick="switchView('branches')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+      Branches
+    </div>
     <div class="nav-label">System</div>
-    <div class="nav-item" onclick="switchView('settings')">
+    <div class="nav-item" data-view="settings" onclick="switchView('settings')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       Settings
     </div>
@@ -660,10 +687,16 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
         <button class="ftab" onclick="setPRFilter('Merged',this)">Merged</button>
         <button class="ftab" onclick="setPRFilter('Closed',this)">Closed</button>
       </div>
-      <button class="btn" onclick="exportPRCSV()" style="font-size:12px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export CSV
-      </button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="openCreatePRModal()" style="font-size:12px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New PR
+        </button>
+        <button class="btn" onclick="exportPRCSV()" style="font-size:12px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
     </div>
     <div id="pr-list"></div>
     <div id="load-more-prs"></div>
@@ -795,7 +828,57 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
     </div>
   </div>
 
+  <!-- BRANCHES VIEW -->
+  <div class="view" id="view-branches">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:13px;color:var(--text3)" id="branch-meta"></div>
+      <button class="btn" onclick="renderBranchView(true)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div id="branch-list"></div>
+  </div>
+
 </main>
+
+<!-- CREATE PR MODAL -->
+<div id="create-pr-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-card);width:540px;max-width:calc(100vw - 32px);padding:28px;position:relative;max-height:90vh;overflow-y:auto">
+    <button onclick="closeCreatePRModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1">✕</button>
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">Open New Pull Request</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:20px">Creates the PR directly on GitHub</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Head branch (your changes)</div>
+        <select id="cpr-head" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none"></select>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Base branch (merge into)</div>
+        <select id="cpr-base" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none"></select>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Title</div>
+      <input type="text" id="cpr-title" placeholder="PR title" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none">
+    </div>
+    <div style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">Description</div>
+        <button class="btn" id="cpr-ai-btn" onclick="draftPRDescription()" style="font-size:11px;padding:4px 10px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          AI Draft
+        </button>
+      </div>
+      <textarea id="cpr-body" rows="6" placeholder="Describe what this PR does..." style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;resize:vertical;line-height:1.5"></textarea>
+    </div>
+    <div id="cpr-status" style="font-size:12px;color:var(--text3);min-height:18px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn" onclick="closeCreatePRModal()" style="flex:1">Cancel</button>
+      <button id="cpr-submit-btn" class="btn btn-primary" onclick="submitCreatePR()" style="flex:2;justify-content:center">Open Pull Request</button>
+    </div>
+  </div>
+</div>
 
 <!-- CONNECT MODAL -->
 <div class="overlay" id="connect-modal" onclick="closeModal(event)">
@@ -1149,6 +1232,7 @@ function selectRepo(repo) {
   prCommentsCache.clear(); prReviewCommentsCache.clear();
   expandedCommits.clear(); expandedPRs.clear();
   commits = []; prs = [];
+  branchData = []; _branchList = [];
   insDays = 0;
   // Reset insights filter UI to "All time"
   document.querySelectorAll('#view-insights .ftab').forEach((t,i,arr)=>t.classList.toggle('active',i===arr.length-1));
@@ -1548,10 +1632,16 @@ function expandedPRHtml(p) {
       <div class="abox"><div class="albl">PR Quality</div><div class="acontent">${esc(cached.quality)}</div></div>
     </div>
     ${files.length?`<div style="margin-top:14px">
-      <div class="albl" style="margin-bottom:8px">Files Changed</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="albl">Files Changed (${files.length})</div>
+        <button class="abtn" onclick="toggleDiffView(${num})" id="diff-toggle-${num}" style="font-size:11px;padding:4px 10px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Show Diff
+        </button>
+      </div>
+      <div id="diff-view-${num}" style="display:none;margin-bottom:10px">${renderDiff(files)}</div>
       <div class="pr-files-list">
-        ${showFiles.map(f=>`<div class="pr-file-row"><span class="pr-fname">${esc(f.filename)}</span><span class="fadd">+${f.additions}</span><span class="fdel">-${f.deletions}</span></div>`).join('')}
-        ${moreFiles?`<div style="font-size:11px;color:var(--text3);padding:6px 0">+${files.length-8} more files</div>`:''}
+        ${files.map(f=>`<div class="pr-file-row"><span class="pr-fname">${esc(f.filename)}</span><span class="fadd">+${f.additions}</span><span class="fdel">-${f.deletions}</span></div>`).join('')}
       </div>
     </div>`:''}
     ${(comments.length||reviewComments.length)?`<div style="margin-top:16px">
@@ -1570,13 +1660,36 @@ function expandedPRHtml(p) {
         </div>`).join('')}
       </div>
     </div>`:''}
+    ${p.state==='open'?`<div style="margin-top:18px;border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--s2)">
+      <div class="albl" style="margin-bottom:12px">Submit a Review</div>
+      <textarea id="review-body-${num}" rows="3" placeholder="Leave a review comment (optional)..." style="width:100%;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;resize:vertical;line-height:1.5;margin-bottom:10px"></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="abtn" style="color:#4ADE80;border-color:rgba(74,222,128,.3)" onclick="submitReview(${num},'APPROVE')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>Approve
+        </button>
+        <button class="abtn" style="color:var(--red);border-color:var(--red-dim)" onclick="submitReview(${num},'REQUEST_CHANGES')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Request Changes
+        </button>
+        <button class="abtn" onclick="submitReview(${num},'COMMENT')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Comment
+        </button>
+        <span id="review-status-${num}" style="font-size:12px;color:var(--text3);align-self:center"></span>
+      </div>
+    </div>`:''}
     <div class="act-row">
       <a class="abtn" href="https://github.com/${currentRepo?.full_name||''}/pull/${num}" target="_blank">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>View PR on GitHub
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>View on GitHub
       </a>
       <button class="abtn" onclick="copyPRLink(${num})">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Copy PR Link
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Copy Link
       </button>
+      ${p.state==='open'?`
+      <button class="abtn" style="color:#4ADE80;border-color:rgba(74,222,128,.3)" onclick="mergePR(${num})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 012 2v7M6 9v12"/></svg>Merge PR
+      </button>
+      <button class="abtn" style="color:var(--red);border-color:var(--red-dim)" onclick="closePR(${num})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Close PR
+      </button>`:''}
     </div>
   </div>`;
 }
@@ -2112,6 +2225,7 @@ const VIEW_META = {
   commits:  {title:'Commits',       badge:'AI Analysis'},
   prs:      {title:'Pull Requests', badge:'Code Review'},
   insights: {title:'Insights',      badge:'Analytics'},
+  branches: {title:'Branches',      badge:'Repo'},
   settings: {title:'Settings',      badge:'Config'},
 };
 function switchView(v) {
@@ -2120,11 +2234,12 @@ function switchView(v) {
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v)?.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(el=>{ if(el.textContent.trim().toLowerCase().startsWith(v.slice(0,4))) el.classList.add('active'); });
+  document.querySelectorAll('.nav-item').forEach(el=>{ if(el.dataset.view===v) el.classList.add('active'); });
   const meta = VIEW_META[v]||{title:v,badge:''};
   document.getElementById('topbar-title').textContent = meta.title;
   document.getElementById('topbar-badge').textContent = meta.badge;
   if(v==='insights') renderInsights();
+  if(v==='branches') renderBranchView();
   if(v==='settings') { document.getElementById('api-key-inp').value=getKey()?'••••••••••••':''; updateCacheStats(); }
 }
 
@@ -2530,6 +2645,233 @@ ${r.risk_summary ? `<div class="section">
 }
 
 function disconnectRepo() { backToRepos(); toast('🔌','Switched','Back to repo picker'); }
+
+// ── GITHUB WRITE HELPER ───────────────────────────────────────────────────────
+async function ghWrite(method, url, body) {
+  const h = {'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'};
+  if (ghToken) h['Authorization'] = 'Bearer ' + ghToken;
+  const r = await fetch(url, {method, headers:h, body: JSON.stringify(body)});
+  const json = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(json.message || 'HTTP ' + r.status);
+  return json;
+}
+
+// ── INLINE DIFF VIEWER ────────────────────────────────────────────────────────
+function renderDiff(files) {
+  return files.map(f => {
+    const patch = f.patch || '';
+    const lines = patch.split('\n').map(line => {
+      if (line.startsWith('@@'))  return `<span class="diff-line hunk">${esc(line)}</span>`;
+      if (line.startsWith('+'))   return `<span class="diff-line add">${esc(line)}</span>`;
+      if (line.startsWith('-'))   return `<span class="diff-line del">${esc(line)}</span>`;
+      return `<span class="diff-line ctx">${esc(line)}</span>`;
+    }).join('');
+    const statusColor = f.status==='added'?'var(--green)':f.status==='removed'?'var(--red)':'var(--text3)';
+    return `<div class="diff-file">
+      <div class="diff-file-hdr" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <span class="diff-fname-mono">${esc(f.filename)}</span>
+        <span style="color:${statusColor};font-size:10px;text-transform:uppercase;font-weight:600">${esc(f.status)}</span>
+        <span style="color:#4ADE80;font-family:var(--mono);font-size:10px">+${f.additions}</span>
+        <span style="color:var(--red);font-family:var(--mono);font-size:10px">-${f.deletions}</span>
+      </div>
+      ${patch ? `<div class="diff-body" style="display:none">${lines}</div>` : '<div style="padding:8px 12px;font-size:11px;color:var(--text3)">No patch available</div>'}
+    </div>`;
+  }).join('');
+}
+function toggleDiffView(num) {
+  const el  = document.getElementById('diff-view-'+num);
+  const btn = document.getElementById('diff-toggle-'+num);
+  if (!el) return;
+  const showing = el.style.display !== 'none';
+  el.style.display = showing ? 'none' : 'block';
+  btn.innerHTML = (showing
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Show Diff`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Hide Diff`);
+}
+
+// ── MERGE / CLOSE PR ──────────────────────────────────────────────────────────
+async function mergePR(num) {
+  if (!confirm(`Merge PR #${num}? This cannot be undone.`)) return;
+  try {
+    await ghWrite('PUT', `${API}/pulls/${num}/merge`, {merge_method:'squash'});
+    toast('✅','PR Merged',`#${num} merged successfully`);
+    await fetchPRs(); renderPRList(); updatePRStats();
+  } catch(e) {
+    toast('❌','Merge failed', e.message);
+  }
+}
+async function closePR(num) {
+  if (!confirm(`Close PR #${num} without merging?`)) return;
+  try {
+    await ghWrite('PATCH', `${API}/pulls/${num}`, {state:'closed'});
+    toast('✅','PR Closed',`#${num} closed`);
+    const pr = prs.find(p=>p.number===num);
+    if (pr) pr.state = 'closed';
+    renderPRList(); updatePRStats();
+  } catch(e) {
+    toast('❌','Close failed', e.message);
+  }
+}
+
+// ── POST REVIEW ───────────────────────────────────────────────────────────────
+async function submitReview(num, event) {
+  const body = (document.getElementById('review-body-'+num)?.value || '').trim();
+  const statusEl = document.getElementById('review-status-'+num);
+  if (event !== 'COMMENT' && event !== 'APPROVE' && event !== 'REQUEST_CHANGES') return;
+  if (statusEl) statusEl.textContent = 'Submitting…';
+  try {
+    await ghWrite('POST', `${API}/pulls/${num}/reviews`, {body, event});
+    const label = event==='APPROVE' ? 'Approved' : event==='REQUEST_CHANGES' ? 'Changes Requested' : 'Comment posted';
+    toast('✅','Review submitted', label + ` on PR #${num}`);
+    if (statusEl) statusEl.textContent = '';
+    const ta = document.getElementById('review-body-'+num);
+    if (ta) ta.value = '';
+    prReviewsCache.delete(num);
+    await fetchPRReviews(num);
+    renderPRList();
+  } catch(e) {
+    if (statusEl) statusEl.textContent = 'Failed: ' + e.message;
+    toast('❌','Review failed', e.message);
+  }
+}
+
+// ── CREATE PR ─────────────────────────────────────────────────────────────────
+let _branchList = [];
+async function openCreatePRModal() {
+  const modal = document.getElementById('create-pr-modal');
+  modal.style.display = 'flex';
+  document.getElementById('cpr-title').value = '';
+  document.getElementById('cpr-body').value = '';
+  document.getElementById('cpr-status').textContent = '';
+  document.getElementById('cpr-submit-btn').disabled = false;
+  // populate branch dropdowns
+  try {
+    if (!_branchList.length) {
+      const data = await ghFetch(`${API}/branches?per_page=100`);
+      _branchList = data.map(b=>b.name);
+    }
+    const defaultBranch = currentRepo?.default_branch || 'main';
+    const headSel = document.getElementById('cpr-head');
+    const baseSel = document.getElementById('cpr-base');
+    headSel.innerHTML = _branchList.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+    baseSel.innerHTML = _branchList.map(b=>`<option value="${esc(b)}"${b===defaultBranch?' selected':''}>${esc(b)}</option>`).join('');
+    if (_branchList.length > 1) headSel.selectedIndex = _branchList[0] === defaultBranch ? 1 : 0;
+  } catch(e) { document.getElementById('cpr-status').textContent = 'Could not load branches: ' + e.message; }
+}
+function closeCreatePRModal() {
+  document.getElementById('create-pr-modal').style.display = 'none';
+}
+async function draftPRDescription() {
+  const key = getKey();
+  if (!key) { toast('🔑','API Key Required','Add Anthropic key in Settings'); return; }
+  const head = document.getElementById('cpr-head').value;
+  const base = document.getElementById('cpr-base').value;
+  const title = document.getElementById('cpr-title').value.trim();
+  const btn = document.getElementById('cpr-ai-btn');
+  const status = document.getElementById('cpr-status');
+  btn.disabled = true; status.textContent = 'Drafting with AI…';
+  try {
+    const recentCommits = commits.slice(0,15).map(c=>`- ${c.commit.message.split('\n')[0]} (${c.commit.author.name})`).join('\n');
+    const prompt = `Write a professional pull request description for a PR titled "${title||'(untitled)'}" merging "${head}" into "${base}".\n\nRecent commits:\n${recentCommits}\n\nWrite 2-3 paragraphs: what changed, why, and any testing notes. Plain English, no markdown headers, no jargon.`;
+    const res = await fetch(CLAUDE, {method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODEL,max_tokens:500,messages:[{role:'user',content:prompt}]})});
+    const data = await res.json();
+    document.getElementById('cpr-body').value = data.content[0].text.trim();
+    status.textContent = '';
+  } catch(e) { status.textContent = 'AI draft failed: ' + e.message; }
+  btn.disabled = false;
+}
+async function submitCreatePR() {
+  const head  = document.getElementById('cpr-head').value;
+  const base  = document.getElementById('cpr-base').value;
+  const title = document.getElementById('cpr-title').value.trim();
+  const body  = document.getElementById('cpr-body').value.trim();
+  const status = document.getElementById('cpr-status');
+  const btn    = document.getElementById('cpr-submit-btn');
+  if (!title) { status.textContent = 'Title is required'; return; }
+  if (head === base) { status.textContent = 'Head and base branch must be different'; return; }
+  btn.disabled = true; status.textContent = 'Creating PR…';
+  try {
+    const pr = await ghWrite('POST', `${API}/pulls`, {title, body, head, base});
+    toast('✅','PR Created', `#${pr.number} opened`);
+    closeCreatePRModal();
+    await fetchPRs(); renderPRList(); updatePRStats();
+    switchView('prs');
+  } catch(e) {
+    status.textContent = 'Failed: ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+// ── BRANCH OVERVIEW ───────────────────────────────────────────────────────────
+let branchData = [];
+async function renderBranchView(force=false) {
+  const el = document.getElementById('branch-list');
+  const meta = document.getElementById('branch-meta');
+  if (!el) return;
+  if (branchData.length && !force) { _paintBranches(); return; }
+  el.innerHTML = '<div class="skeleton" style="height:60px;margin-bottom:8px"></div><div class="skeleton" style="height:60px;margin-bottom:8px"></div><div class="skeleton" style="height:60px"></div>';
+  try {
+    const branches = await ghFetch(`${API}/branches?per_page=100`);
+    const defaultBranch = currentRepo?.default_branch || 'main';
+    // fetch ahead/behind for each branch vs default (parallel, max 20)
+    const toCompare = branches.filter(b=>b.name!==defaultBranch).slice(0,30);
+    const comparisons = await Promise.all(toCompare.map(b =>
+      ghFetch(`${API}/compare/${encodeURIComponent(defaultBranch)}...${encodeURIComponent(b.name)}`).catch(()=>null)
+    ));
+    // map open PRs by head branch
+    const prByHead = {};
+    prs.filter(p=>p.state==='open').forEach(p=>{ prByHead[p.head.ref] = p; });
+    branchData = branches.map((b,i) => {
+      const isDefault = b.name === defaultBranch;
+      const cmp = isDefault ? null : comparisons[toCompare.findIndex(x=>x.name===b.name)];
+      const ageDays = b.commit?.commit?.author?.date
+        ? Math.floor((Date.now()-new Date(b.commit.commit.author.date))/86400000) : null;
+      return {name:b.name, isDefault, ahead:cmp?.ahead_by??0, behind:cmp?.behind_by??0,
+              lastDate:b.commit?.commit?.author?.date||null, ageDays,
+              pr: prByHead[b.name]||null, sha:b.commit?.sha?.slice(0,7)||''};
+    });
+    meta.textContent = `${branches.length} branches · default: ${defaultBranch}`;
+    _paintBranches();
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><h3>Failed to load branches</h3><p>${esc(e.message)}</p></div>`;
+  }
+}
+function _paintBranches() {
+  const el = document.getElementById('branch-list');
+  if (!el) return;
+  const defaultBranch = currentRepo?.default_branch || 'main';
+  el.innerHTML = branchData.map(b => {
+    const stale = !b.isDefault && b.ageDays !== null && b.ageDays > 60;
+    return `<div class="branch-card">
+      <div>
+        <div class="branch-name">${esc(b.name)}
+          ${b.isDefault?`<span class="branch-default-badge">default</span>`:''}
+          ${b.pr?`<span class="branch-pr-badge">PR #${b.pr.number}</span>`:''}
+          ${stale?`<span class="branch-stale">stale</span>`:''}
+        </div>
+        <div class="branch-meta-row" style="margin-top:5px">
+          ${!b.isDefault&&b.ahead?`<span class="branch-ahead">+${b.ahead} ahead</span>`:''}
+          ${!b.isDefault&&b.behind?`<span class="branch-behind">${b.behind} behind</span>`:''}
+          ${b.lastDate?`<span class="branch-stat">Last commit ${timeAgo(b.lastDate)}</span>`:''}
+          ${b.sha?`<span class="branch-stat" style="font-family:var(--mono)">${b.sha}</span>`:''}
+          ${b.ageDays!==null&&!b.isDefault?`<span class="branch-stat">${b.ageDays}d old</span>`:''}
+        </div>
+      </div>
+      <div class="branch-actions">
+        ${b.pr?`<button class="abtn" onclick="switchView('prs')" style="font-size:11px">View PR</button>`:''}
+        ${!b.isDefault&&!b.pr?`<button class="abtn" style="font-size:11px" onclick="prefillCreatePR('${esc(b.name)}','${esc(defaultBranch)}')">Open PR</button>`:''}
+        <a class="abtn" style="font-size:11px" href="https://github.com/${currentRepo?.full_name||''}/tree/${encodeURIComponent(b.name)}" target="_blank">View</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+function prefillCreatePR(head, base) {
+  openCreatePRModal().then(()=>{
+    const headSel = document.getElementById('cpr-head');
+    if (headSel) { for(let o of headSel.options) { if(o.value===head) o.selected=true; } }
+  });
+}
 
 function exportCSV() {
   if(!commits.length){toast('⚠️','No data','Load commits first');return;}
