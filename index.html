@@ -233,6 +233,48 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .pr-fname{font-family:var(--mono);color:var(--text2);flex:1;font-size:11px}
 .fadd{color:#4ADE80;font-family:var(--mono);font-size:11px}
 .fdel{color:var(--red);font-family:var(--mono);font-size:11px}
+/* ── Nav count badge ── */
+.nav-count{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;min-width:18px;text-align:center;line-height:16px}
+/* ── Notification bell ── */
+.notif-wrap{position:relative}
+.notif-btn{position:relative;padding:7px 10px}
+.notif-badge{position:absolute;top:4px;right:4px;background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1}
+.notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:340px;background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-card);box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:500;overflow:hidden}
+.notif-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.notif-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.notif-item:hover{background:var(--s2)}
+.notif-item:last-child{border-bottom:none}
+.notif-item.unread{border-left:3px solid var(--gold)}
+.notif-item.read{border-left:3px solid transparent;opacity:.7}
+.notif-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4}
+.notif-sub{font-size:11px;color:var(--text3)}
+.notif-empty{padding:24px 16px;font-size:12px;color:var(--text3);text-align:center}
+/* ── Issues ── */
+.issue-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);padding:14px 16px;margin-bottom:8px;display:flex;gap:14px;align-items:flex-start;transition:border-color .15s}
+.issue-card:hover{border-color:var(--border2)}
+.issue-icon-open{color:#4ADE80}
+.issue-icon-closed{color:var(--text3)}
+.issue-num{font-family:var(--mono);font-size:11px;color:var(--text3);white-space:nowrap}
+.issue-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.4}
+.issue-meta{font-size:11px;color:var(--text3)}
+.issue-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+/* ── CI badge ── */
+.ci-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:var(--r-pill);white-space:nowrap}
+.ci-pass{background:rgba(74,222,128,.15);color:#4ADE80}
+.ci-fail{background:var(--red-dim);color:var(--red)}
+.ci-pending{background:var(--gold-dim);color:var(--gold)}
+.ci-none{background:var(--s2);color:var(--text3)}
+/* ── Pin button on repo card ── */
+.rc-pin{position:absolute;top:10px;right:10px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;opacity:0;transition:opacity .15s}
+.repo-card{position:relative}
+.repo-card:hover .rc-pin{opacity:1}
+.rc-pin.pinned{opacity:1;color:var(--gold)}
+/* ── File heatmap ── */
+.fheat-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.fheat-name{font-family:var(--mono);font-size:11px;color:var(--text2);width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.fheat-bar-wrap{flex:1;height:8px;background:var(--s3);border-radius:4px;overflow:hidden}
+.fheat-bar{height:100%;border-radius:4px;background:var(--gold);transition:width .3s}
+.fheat-count{font-size:11px;color:var(--text3);width:28px;text-align:right;flex-shrink:0}
 /* ── Diff viewer ── */
 .diff-file{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden}
 .diff-file-hdr{background:var(--s2);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;user-select:none}
@@ -565,6 +607,11 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Insights
     </div>
+    <div class="nav-item" data-view="issues" onclick="switchView('issues')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Issues
+      <span class="nav-count" id="nav-issues-count"></span>
+    </div>
     <div class="nav-item" data-view="branches" onclick="switchView('branches')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
       Branches
@@ -596,6 +643,19 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
     <span class="topbar-badge" id="topbar-badge">AI Analysis</span>
   </div>
   <div class="topbar-right">
+    <div class="notif-wrap" id="notif-wrap">
+      <button class="btn notif-btn" onclick="toggleNotifPanel()" id="notif-btn" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-badge" style="display:none"></span>
+      </button>
+      <div class="notif-panel" id="notif-panel" style="display:none">
+        <div class="notif-header">
+          <span style="font-weight:600;font-size:13px">Notifications</span>
+          <button onclick="markAllRead()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3)">Mark all read</button>
+        </div>
+        <div id="notif-list"><div style="padding:16px;font-size:12px;color:var(--text3);text-align:center">Loading…</div></div>
+      </div>
+    </div>
     <button class="btn" onclick="openReportModal()" style="color:var(--gold);border-color:rgba(201,168,76,.3)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Report
@@ -766,6 +826,10 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
         <div class="ip-header"><div><div class="ip-title">Quality Trend</div><div class="ip-sub">AI quality scores — expand commits to populate</div></div></div>
         <div id="quality-chart"></div>
       </div>
+      <div class="ip full">
+        <div class="ip-header"><div><div class="ip-title">File Change Heatmap</div><div class="ip-sub">Most frequently modified files — expand commits or PRs to populate</div></div></div>
+        <div id="file-heatmap-body" style="padding-top:8px"></div>
+      </div>
     </div>
   </div>
 
@@ -828,6 +892,31 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
     </div>
   </div>
 
+  <!-- AUTO-REFRESH BANNER -->
+  <div id="refresh-banner" style="display:none;position:sticky;top:0;z-index:100;background:var(--teal-dim);border:1px solid var(--teal);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:12px">
+    <span style="font-size:13px;color:var(--teal)" id="refresh-banner-msg"></span>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="applyAutoRefresh()" style="font-size:12px;color:var(--teal);border-color:var(--teal)">Load updates</button>
+      <button onclick="document.getElementById('refresh-banner').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1">✕</button>
+    </div>
+  </div>
+
+  <!-- ISSUES VIEW -->
+  <div class="view" id="view-issues">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div class="filter-tabs" id="issue-filters">
+        <button class="ftab active" onclick="setIssueFilter('open',this)">Open</button>
+        <button class="ftab" onclick="setIssueFilter('closed',this)">Closed</button>
+        <button class="ftab" onclick="setIssueFilter('all',this)">All</button>
+      </div>
+      <button class="btn btn-primary" onclick="openCreateIssueModal()" style="font-size:12px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Issue
+      </button>
+    </div>
+    <div id="issue-list"><div class="skeleton" style="height:60px;margin-bottom:8px"></div><div class="skeleton" style="height:60px"></div></div>
+  </div>
+
   <!-- BRANCHES VIEW -->
   <div class="view" id="view-branches">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -859,7 +948,13 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       </div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Title</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">Title</div>
+        <button class="btn" id="cpr-title-ai-btn" onclick="draftPRTitle()" style="font-size:11px;padding:4px 10px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          AI Title
+        </button>
+      </div>
       <input type="text" id="cpr-title" placeholder="PR title" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none">
     </div>
     <div style="margin-bottom:8px">
@@ -876,6 +971,27 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
     <div style="display:flex;gap:10px">
       <button class="btn" onclick="closeCreatePRModal()" style="flex:1">Cancel</button>
       <button id="cpr-submit-btn" class="btn btn-primary" onclick="submitCreatePR()" style="flex:2;justify-content:center">Open Pull Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE ISSUE MODAL -->
+<div id="create-issue-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-card);width:500px;max-width:calc(100vw - 32px);padding:28px;position:relative">
+    <button onclick="closeCreateIssueModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1">✕</button>
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:20px">Open New Issue</div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Title</div>
+      <input type="text" id="ci-title" placeholder="Issue title" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none">
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Description (optional)</div>
+      <textarea id="ci-body" rows="5" placeholder="Describe the issue..." style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-btn);padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;resize:vertical;line-height:1.5"></textarea>
+    </div>
+    <div id="ci-status" style="font-size:12px;color:var(--text3);min-height:18px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn" onclick="closeCreateIssueModal()" style="flex:1">Cancel</button>
+      <button id="ci-submit-btn" class="btn btn-primary" onclick="submitCreateIssue()" style="flex:2;justify-content:center">Open Issue</button>
     </div>
   </div>
 </div>
@@ -1180,7 +1296,9 @@ function renderRepoGrid(repos) {
     const forks   = r.forks_count       ? `<span class="rc-stat"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm0 2.122a2.25 2.25 0 1 0-1.5 0v.878A2.25 2.25 0 0 0 5.75 8.5h1.5v2.128a2.251 2.251 0 1 0 1.5 0V8.5h1.5a2.25 2.25 0 0 0 2.25-2.25v-.878a2.25 2.25 0 1 0-1.5 0v.878a.75.75 0 0 1-.75.75h-4.5A.75.75 0 0 1 5 6.25v-.878zm3.75 7.378a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm3-8.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0z"/></svg>${r.forks_count}</span>` : '';
     const stars   = r.stargazers_count  ? `<span class="rc-stat"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z"/></svg>${r.stargazers_count}</span>` : '';
     const watchers= r.watchers_count>0  ? `<span class="rc-stat"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 0 1 0 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.83.88 9.576.43 8.898a1.62 1.62 0 0 1 0-1.798c.45-.677 1.367-1.931 2.637-3.022C4.33 2.992 6.019 2 8 2zm0 1.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM8 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>${r.watchers_count}</span>` : '';
+    const isPinned = pinnedSet.has(r.full_name);
     return `<div class="repo-card" onclick="selectRepo(${JSON.stringify(r).replace(/"/g,'&quot;')})" title="${heat.label}">
+      <button class="rc-pin ${isPinned?'pinned':''}" onclick="togglePinRepo(event,'${esc(r.full_name)}')" title="${isPinned?'Unpin':'Pin'} repo">&#9733;</button>
       <div class="rc-top"><span class="rc-name">${esc(r.name)}</span><span class="rc-badges">${badges}</span></div>
       <div class="rc-desc">${esc(r.description||'No description')}</div>
       <div class="rc-meta">
@@ -1207,13 +1325,28 @@ function renderRepoGrid(repos) {
     </div>`;
   }
 
+  const pinnedKeys  = getPinnedRepos();
+  const pinnedRepos = pinnedKeys.map(k=>repos.find(r=>r.full_name===k)).filter(Boolean);
+  const pinnedSet   = new Set(pinnedKeys);
+
   let html = '';
-  if (recentRepos.length && !q && repoFilter==='all' && sort==='pushed') {
-    html += `<div class="repos-section-label">Recently visited</div>`;
-    html += `<div class="repo-grid" style="margin-bottom:24px">${recentRepos.map(r=>repoCard(r,true)).join('')}</div>`;
+  const showSections = !q && repoFilter==='all' && sort==='pushed';
+  if (showSections && pinnedRepos.length) {
+    html += `<div class="repos-section-label">Pinned</div>`;
+    html += `<div class="repo-grid" style="margin-bottom:24px">${pinnedRepos.map(r=>repoCard(r,recentSet.has(r.full_name))).join('')}</div>`;
+  }
+  if (showSections && recentRepos.length) {
+    const nonPinnedRecent = recentRepos.filter(r=>!pinnedSet.has(r.full_name));
+    if (nonPinnedRecent.length) {
+      html += `<div class="repos-section-label">Recently visited</div>`;
+      html += `<div class="repo-grid" style="margin-bottom:24px">${nonPinnedRecent.map(r=>repoCard(r,true)).join('')}</div>`;
+    }
     html += `<div class="repos-section-label">All repositories</div>`;
   }
-  html += `<div class="repo-grid">${filtered.map(r=>repoCard(r, recentSet.has(r.full_name))).join('')}</div>`;
+  // Exclude repos already shown in pinned/recent sections to avoid duplicates
+  const shownKeys = showSections ? new Set([...pinnedKeys, ...recentKeys]) : new Set();
+  const remaining = showSections ? filtered.filter(r=>!shownKeys.has(r.full_name)) : filtered;
+  html += `<div class="repo-grid">${remaining.map(r=>repoCard(r, recentSet.has(r.full_name))).join('')}</div>`;
   document.getElementById('repo-grid').innerHTML = html;
 }
 
@@ -1231,8 +1364,9 @@ function selectRepo(repo) {
   commitDetailCache.clear(); prFilesCache.clear(); prReviewsCache.clear();
   prCommentsCache.clear(); prReviewCommentsCache.clear();
   expandedCommits.clear(); expandedPRs.clear();
-  commits = []; prs = [];
+  commits = []; prs = []; issues = [];
   branchData = []; _branchList = [];
+  issuesLoaded = false; ciCache.clear();
   insDays = 0;
   // Reset insights filter UI to "All time"
   document.querySelectorAll('#view-insights .ftab').forEach((t,i,arr)=>t.classList.toggle('active',i===arr.length-1));
@@ -1878,6 +2012,7 @@ function renderInsights() {
   renderPRMergeTrend();
   renderContribTable();
   renderQualityChart();
+  renderFileHeatmap();
 }
 
 function populateAuthorFilter() {
@@ -2225,6 +2360,7 @@ const VIEW_META = {
   commits:  {title:'Commits',       badge:'AI Analysis'},
   prs:      {title:'Pull Requests', badge:'Code Review'},
   insights: {title:'Insights',      badge:'Analytics'},
+  issues:   {title:'Issues',        badge:'Tracker'},
   branches: {title:'Branches',      badge:'Repo'},
   settings: {title:'Settings',      badge:'Config'},
 };
@@ -2240,6 +2376,7 @@ function switchView(v) {
   document.getElementById('topbar-badge').textContent = meta.badge;
   if(v==='insights') renderInsights();
   if(v==='branches') renderBranchView();
+  if(v==='issues')   { if(!issuesLoaded) fetchIssues(); else renderIssueList(); }
   if(v==='settings') { document.getElementById('api-key-inp').value=getKey()?'••••••••••••':''; updateCacheStats(); }
 }
 
@@ -2646,6 +2783,263 @@ ${r.risk_summary ? `<div class="section">
 
 function disconnectRepo() { backToRepos(); toast('🔌','Switched','Back to repo picker'); }
 
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+let _notifOpen = false;
+async function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  _notifOpen = !_notifOpen;
+  panel.style.display = _notifOpen ? 'block' : 'none';
+  if (_notifOpen) fetchNotifications();
+}
+document.addEventListener('click', e => {
+  if (_notifOpen && !document.getElementById('notif-wrap')?.contains(e.target)) {
+    _notifOpen = false;
+    document.getElementById('notif-panel').style.display = 'none';
+  }
+});
+async function fetchNotifications() {
+  const el = document.getElementById('notif-list');
+  try {
+    const all = await ghFetch(`https://api.github.com/notifications?all=false&per_page=30`);
+    const repo = currentRepo?.full_name || '';
+    const mine = repo ? all.filter(n => n.repository?.full_name === repo) : all.slice(0,20);
+    const badge = document.getElementById('notif-badge');
+    const unread = mine.filter(n=>n.unread).length;
+    if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display='flex'; }
+    else badge.style.display='none';
+    if (!mine.length) { el.innerHTML = '<div class="notif-empty">No notifications for this repo</div>'; return; }
+    el.innerHTML = mine.map(n => {
+      const typeIcon = n.subject.type==='PullRequest' ? '⟵' : n.subject.type==='Issue' ? '●' : '◆';
+      const num = n.subject.url?.split('/').pop() || '';
+      return `<div class="notif-item ${n.unread?'unread':'read'}" onclick="markNotifRead('${n.id}',this)">
+        <div class="notif-title">${typeIcon} ${esc(n.subject.title)}</div>
+        <div class="notif-sub">${esc(n.subject.type)} ${num ? '#'+num : ''} · ${timeAgo(n.updated_at)}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="notif-empty">Could not load notifications</div>`;
+  }
+}
+async function markNotifRead(id, el) {
+  el?.classList.replace('unread','read');
+  try { await ghWrite('PATCH', `https://api.github.com/notifications/threads/${id}`, {}); } catch(_) {}
+}
+async function markAllRead() {
+  try {
+    await ghWrite('PUT', `https://api.github.com/notifications`, {});
+    document.getElementById('notif-badge').style.display = 'none';
+    document.querySelectorAll('.notif-item.unread').forEach(el=>el.classList.replace('unread','read'));
+  } catch(_) {}
+}
+
+// ── ISSUES ────────────────────────────────────────────────────────────────────
+let issues = [], issueFilter = 'open', issuesLoaded = false;
+async function fetchIssues() {
+  const el = document.getElementById('issue-list');
+  el.innerHTML = '<div class="skeleton" style="height:60px;margin-bottom:8px"></div><div class="skeleton" style="height:60px"></div>';
+  try {
+    const data = await ghFetch(`${API}/issues?state=${issueFilter}&per_page=50&direction=desc`);
+    issues = data.filter(i => !i.pull_request); // exclude PRs
+    issuesLoaded = true;
+    const openCount = issues.filter(i=>i.state==='open').length;
+    const badge = document.getElementById('nav-issues-count');
+    if (badge) { badge.textContent = openCount || ''; badge.style.display = openCount ? 'inline' : 'none'; }
+    renderIssueList();
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><h3>Failed to load issues</h3><p>${esc(e.message)}</p></div>`;
+  }
+}
+function setIssueFilter(f, btn) {
+  issueFilter = f;
+  document.querySelectorAll('#issue-filters .ftab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  issuesLoaded = false;
+  fetchIssues();
+}
+function renderIssueList() {
+  const el = document.getElementById('issue-list');
+  if (!issues.length) { el.innerHTML='<div class="empty-state"><h3>No issues</h3><p>Try a different filter.</p></div>'; return; }
+  el.innerHTML = issues.map(i => {
+    const isOpen = i.state === 'open';
+    const labels = (i.labels||[]).map(l=>`<span style="background:#${l.color}22;color:#${l.color};font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600">${esc(l.name)}</span>`).join(' ');
+    return `<div class="issue-card">
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" class="${isOpen?'issue-icon-open':'issue-icon-closed'}" style="flex-shrink:0;margin-top:2px">
+        <path d="${isOpen ? 'M8 9.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM8 0a8 8 0 110 16A8 8 0 018 0zM1.5 8a6.5 6.5 0 1013 0 6.5 6.5 0 00-13 0z' : 'M11.28 6.78a.75.75 0 00-1.06-1.06L7.25 8.69 5.78 7.22a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l3.5-3.5z M1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0zM8 0a8 8 0 100 16A8 8 0 008 0z'}"/>
+      </svg>
+      <div style="flex:1;min-width:0">
+        <div class="issue-title">${esc(i.title)}</div>
+        <div class="issue-meta">#${i.number} · opened ${timeAgo(i.created_at)} by ${esc(i.user?.login||'?')} ${labels}</div>
+      </div>
+      <div class="issue-actions">
+        ${isOpen ? `<button class="abtn" style="color:var(--red);border-color:var(--red-dim);font-size:11px" onclick="closeIssue(${i.number},this)">Close</button>` : ''}
+        <a class="abtn" style="font-size:11px" href="https://github.com/${currentRepo?.full_name}/issues/${i.number}" target="_blank">View</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function closeIssue(num, btn) {
+  if (!confirm(`Close issue #${num}?`)) return;
+  btn.disabled = true;
+  try {
+    await ghWrite('PATCH', `${API}/issues/${num}`, {state:'closed'});
+    toast('✅','Issue closed',`#${num} closed`);
+    const i = issues.find(x=>x.number===num);
+    if (i) i.state = 'closed';
+    renderIssueList();
+  } catch(e) { toast('❌','Failed', e.message); btn.disabled=false; }
+}
+function openCreateIssueModal() {
+  document.getElementById('ci-title').value = '';
+  document.getElementById('ci-body').value = '';
+  document.getElementById('ci-status').textContent = '';
+  document.getElementById('ci-submit-btn').disabled = false;
+  document.getElementById('create-issue-modal').style.display = 'flex';
+}
+function closeCreateIssueModal() { document.getElementById('create-issue-modal').style.display = 'none'; }
+async function submitCreateIssue() {
+  const title = document.getElementById('ci-title').value.trim();
+  const body  = document.getElementById('ci-body').value.trim();
+  const status = document.getElementById('ci-status');
+  const btn    = document.getElementById('ci-submit-btn');
+  if (!title) { status.textContent = 'Title is required'; return; }
+  btn.disabled = true; status.textContent = 'Creating…';
+  try {
+    const issue = await ghWrite('POST', `${API}/issues`, {title, body});
+    toast('✅','Issue created', `#${issue.number} opened`);
+    closeCreateIssueModal();
+    issuesLoaded = false;
+    if (currentView === 'issues') fetchIssues();
+  } catch(e) { status.textContent = 'Failed: ' + e.message; btn.disabled=false; }
+}
+
+// ── CI / CHECK STATUS ─────────────────────────────────────────────────────────
+const ciCache = new Map();
+async function fetchCI(sha) {
+  if (ciCache.has(sha)) return ciCache.get(sha);
+  try {
+    const data = await ghFetch(`${API}/commits/${sha}/check-runs`);
+    const runs = data.check_runs || [];
+    let status = 'none';
+    if (runs.length) {
+      if (runs.every(r=>r.conclusion==='success')) status='pass';
+      else if (runs.some(r=>r.conclusion==='failure'||r.conclusion==='timed_out')) status='fail';
+      else status='pending';
+    }
+    ciCache.set(sha, status);
+    return status;
+  } catch(_) { return 'none'; }
+}
+function ciBadgeHtml(status) {
+  const map = {
+    pass:    ['ci-pass',    '✓ CI Passed'],
+    fail:    ['ci-fail',    '✗ CI Failed'],
+    pending: ['ci-pending', '◌ Checks running'],
+    none:    ['ci-none',    '— No CI'],
+  };
+  const [cls, label] = map[status] || map.none;
+  return `<span class="ci-badge ${cls}">${label}</span>`;
+}
+
+// ── AI PR TITLE ───────────────────────────────────────────────────────────────
+async function draftPRTitle() {
+  const key = getKey();
+  if (!key) { toast('🔑','API Key Required','Add Anthropic key in Settings'); return; }
+  const head = document.getElementById('cpr-head').value;
+  const base = document.getElementById('cpr-base').value;
+  const btn = document.getElementById('cpr-title-ai-btn');
+  const status = document.getElementById('cpr-status');
+  btn.disabled = true; status.textContent = 'Generating title…';
+  try {
+    const recentCommits = commits.slice(0,10).map(c=>`- ${c.commit.message.split('\n')[0]}`).join('\n');
+    const prompt = `Write a concise pull request title (under 72 characters) for a PR merging "${head}" into "${base}". Recent commits:\n${recentCommits}\n\nReturn ONLY the title, no quotes, no explanation.`;
+    const res = await fetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODEL,max_tokens:60,messages:[{role:'user',content:prompt}]})});
+    const data = await res.json();
+    document.getElementById('cpr-title').value = data.content[0].text.trim().replace(/^["']|["']$/g,'');
+    status.textContent = '';
+  } catch(e) { status.textContent = 'Failed: ' + e.message; }
+  btn.disabled = false;
+}
+
+// ── PINNED REPOS ──────────────────────────────────────────────────────────────
+function getPinnedRepos() { return JSON.parse(localStorage.getItem('gd_pinned')||'[]'); }
+function togglePinRepo(e, fullName) {
+  e.stopPropagation();
+  const pins = getPinnedRepos();
+  const idx = pins.indexOf(fullName);
+  if (idx >= 0) pins.splice(idx,1); else pins.unshift(fullName);
+  localStorage.setItem('gd_pinned', JSON.stringify(pins));
+  renderRepoGrid(allRepos);
+}
+
+// ── FILE CHANGE HEATMAP ───────────────────────────────────────────────────────
+function buildFileHeatmap() {
+  const counts = {};
+  // aggregate from commit details
+  commitDetailCache.forEach(d => {
+    (d.files||[]).forEach(f => { counts[f.filename] = (counts[f.filename]||0) + 1; });
+  });
+  // aggregate from PR files
+  prFilesCache.forEach(files => {
+    files.forEach(f => { counts[f.filename] = (counts[f.filename]||0) + 1; });
+  });
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,20);
+}
+function renderFileHeatmap() {
+  const data = buildFileHeatmap();
+  const el = document.getElementById('file-heatmap-body');
+  if (!el) return;
+  if (!data.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Expand commits or PRs to populate this chart</div>'; return; }
+  const max = data[0][1];
+  el.innerHTML = data.map(([file, count]) => {
+    const pct = Math.round((count/max)*100);
+    const short = file.split('/').pop();
+    return `<div class="fheat-row" title="${esc(file)}">
+      <div class="fheat-name" title="${esc(file)}">${esc(short)}</div>
+      <div class="fheat-bar-wrap"><div class="fheat-bar" style="width:${pct}%"></div></div>
+      <div class="fheat-count">${count}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── AUTO-REFRESH ──────────────────────────────────────────────────────────────
+let _autoRefreshInterval = null;
+let _pendingNewCommits = 0, _pendingNewPRs = 0;
+function startAutoRefresh() {
+  if (_autoRefreshInterval) clearInterval(_autoRefreshInterval);
+  _autoRefreshInterval = setInterval(silentRefresh, 120000); // every 2 min
+}
+function stopAutoRefresh() {
+  if (_autoRefreshInterval) clearInterval(_autoRefreshInterval);
+  _autoRefreshInterval = null;
+}
+async function silentRefresh() {
+  if (!API || !currentRepo) return;
+  try {
+    const [newCommitsBatch, newPRsBatch] = await Promise.all([
+      ghFetch(`${API}/commits?per_page=5&page=1`).catch(()=>[]),
+      ghFetch(`${API}/pulls?state=all&per_page=5&page=1`).catch(()=>[]),
+    ]);
+    const latestCommitSha = commits[0]?.sha;
+    const latestPRNum    = prs[0]?.number;
+    _pendingNewCommits = newCommitsBatch.filter(c=>c.sha!==latestCommitSha&&!commits.find(x=>x.sha===c.sha)).length;
+    _pendingNewPRs     = newPRsBatch.filter(p=>!prs.find(x=>x.number===p.number)).length;
+    if (_pendingNewCommits > 0 || _pendingNewPRs > 0) {
+      const parts = [];
+      if (_pendingNewCommits > 0) parts.push(`${_pendingNewCommits} new commit${_pendingNewCommits>1?'s':''}`);
+      if (_pendingNewPRs > 0)     parts.push(`${_pendingNewPRs} new PR${_pendingNewPRs>1?'s':''}`);
+      const banner = document.getElementById('refresh-banner');
+      document.getElementById('refresh-banner-msg').textContent = parts.join(' and ') + ' available';
+      banner.style.display = 'flex';
+    }
+  } catch(_) {}
+}
+async function applyAutoRefresh() {
+  document.getElementById('refresh-banner').style.display = 'none';
+  _pendingNewCommits = 0; _pendingNewPRs = 0;
+  await refresh();
+}
+
 // ── GITHUB WRITE HELPER ───────────────────────────────────────────────────────
 async function ghWrite(method, url, body) {
   const h = {'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'};
@@ -2987,6 +3381,7 @@ async function init() {
   updateStats(); updatePRStats();
   renderCommitList(); renderPRList(); renderRightPanels();
   if (skel) { skel.style.opacity='0'; setTimeout(()=>{ skel.style.display='none'; skel.style.opacity='1'; },300); }
+  startAutoRefresh();
 }
 
 // ── PAGE LOAD ─────────────────────────────────────────────────────────────────
