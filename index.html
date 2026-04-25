@@ -1255,6 +1255,30 @@ function repoHeatScore(r) {
   if (days <= 90) return { cls:'heat-cool', pct:35,  label:'Active this quarter' };
   return            { cls:'heat-cold', pct:12,  label:'Inactive' };
 }
+function repoWaveform(r, heatCls) {
+  if (heatCls === 'heat-cold') return { points:'0,11 120,11', dotX:null };
+  // Deterministic seed from repo identity so same repo always gets same waveform
+  let seed = 0;
+  for (const c of r.full_name) seed = ((seed << 5) - seed + c.charCodeAt(0)) & 0xFFFFFFFF;
+  seed = Math.abs(seed) + (r.stargazers_count||0) + (r.forks_count||0);
+  const rand = i => (((seed * 1664525 + i * 1013904223) >>> 0) / 0xFFFFFFFF);
+  const cfg = {
+    'heat-hot':  { spikes:3, amp:7, spread:28 },
+    'heat-warm': { spikes:2, amp:5, spread:35 },
+    'heat-cool': { spikes:1, amp:4, spread:50 },
+  }[heatCls];
+  const pts = ['0,11'];
+  let lastX = 0;
+  for (let i = 0; i < cfg.spikes; i++) {
+    const cx = Math.round(12 + rand(i*3)*8 + i * cfg.spread + rand(i*7)*10);
+    lastX = cx;
+    const up = Math.round(cfg.amp * (0.5 + rand(i+10) * 0.5));
+    const dn = Math.round(cfg.amp * (0.3 + rand(i+20) * 0.6));
+    pts.push(`${cx-5},11`, `${cx-2},${11-up}`, `${cx+1},${11+dn}`, `${cx+5},${11-Math.round(up*0.4)}`, `${cx+9},11`);
+  }
+  pts.push('120,11');
+  return { points: pts.join(' '), dotX: Math.min(lastX + 9, 110) };
+}
 
 function renderRepoGrid(repos) {
   const q    = (document.getElementById('repo-search')?.value||'').toLowerCase();
@@ -1307,19 +1331,13 @@ function renderRepoGrid(repos) {
       </div>
       <div class="rc-stats">${stars}${forks}${watchers}${issues}</div>
       <div class="rc-heat ${heat.cls}">
-        <div class="rc-pulse">
-          <svg viewBox="0 0 120 22" preserveAspectRatio="none">
-            <polyline class="pulse-line" points="${{
-              'heat-hot':  '0,11 10,11 14,4  18,18 22,8  26,14 30,11 50,11 54,3  58,19 62,6  66,16 70,11 120,11',
-              'heat-warm': '0,11 20,11 24,5  28,17 32,11 60,11 64,7  68,15 72,11 120,11',
-              'heat-cool': '0,11 35,11 39,7  43,15 47,11 80,11 120,11',
-              'heat-cold': '0,11 120,11'
-            }[heat.cls]}" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            ${heat.cls !== 'heat-cold' ? `<circle class="pulse-dot" cx="${{
-              'heat-hot':'70','heat-warm':'72','heat-cool':'47'
-            }[heat.cls]}" cy="11" r="3"/>` : ''}
-          </svg>
-        </div>
+        <div class="rc-pulse">${(()=>{
+          const w = repoWaveform(r, heat.cls);
+          return `<svg viewBox="0 0 120 22" preserveAspectRatio="none">
+            <polyline class="pulse-line" points="${w.points}" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            ${w.dotX ? `<circle class="pulse-dot" cx="${w.dotX}" cy="11" r="3"/>` : ''}
+          </svg>`;
+        })()}</div>
         <span class="rc-heat-label">${heat.label}</span>
       </div>
     </div>`;
