@@ -2733,8 +2733,11 @@ async function submitReview(num, event) {
     await fetchPRReviews(num);
     renderPRList();
   } catch(e) {
-    if (statusEl) statusEl.textContent = 'Failed: ' + e.message;
-    toast('❌','Review failed', e.message);
+    const msg = e.message.toLowerCase().includes('unprocessable') || e.message.includes('422')
+      ? 'You cannot review your own PR — GitHub restriction'
+      : e.message;
+    if (statusEl) statusEl.textContent = 'Failed: ' + msg;
+    toast('❌','Review failed', msg);
   }
 }
 
