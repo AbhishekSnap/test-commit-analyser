@@ -2652,7 +2652,10 @@ async function ghWrite(method, url, body) {
   if (ghToken) h['Authorization'] = 'Bearer ' + ghToken;
   const r = await fetch(url, {method, headers:h, body: JSON.stringify(body)});
   const json = await r.json().catch(()=>({}));
-  if (!r.ok) throw new Error(json.message || 'HTTP ' + r.status);
+  if (!r.ok) {
+    const detail = json.errors?.map(e=>e.message||e.code).join(', ') || '';
+    throw new Error((json.message || 'HTTP ' + r.status) + (detail ? ': ' + detail : ''));
+  }
   return json;
 }
 
