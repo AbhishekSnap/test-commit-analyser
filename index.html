@@ -504,6 +504,66 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
 /* Recent repos section */
 .repos-section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;margin-top:4px}
 .rc-recent-badge{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(201,168,76,.15);color:var(--gold);font-family:var(--mono)}
+/* ── AI REVIEW ── */
+.ai-review-wrap{border:1px solid var(--border2);border-radius:10px;overflow:hidden}
+.ai-review-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--border)}
+.ai-review-hdr-title{font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:7px}
+.ai-review-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.ar-item{padding:10px 12px;border-radius:8px;border-left:3px solid var(--border2)}
+.ar-critical{border-left-color:var(--red);background:var(--red-dim)}
+.ar-warning{border-left-color:var(--amber);background:var(--amber-dim)}
+.ar-info{border-left-color:var(--blue);background:rgba(96,165,250,.08)}
+.ar-sev{font-family:var(--mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.ar-critical .ar-sev{color:var(--red)}
+.ar-warning .ar-sev{color:var(--amber)}
+.ar-info .ar-sev{color:var(--blue)}
+.ar-file{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:3px}
+.ar-desc{font-size:12px;color:var(--text2);line-height:1.5}
+/* ── Risk meter ── */
+.risk-meter-wrap{margin-bottom:10px;background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:14px}
+.risk-meter-header{display:flex;align-items:flex-start;gap:20px}
+.risk-meter-score{font-size:30px;font-weight:700;line-height:1}
+.risk-meter-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.risk-dim{display:grid;grid-template-columns:110px 1fr 28px;align-items:center;gap:8px;margin-bottom:7px}
+.risk-dim:last-child{margin-bottom:0}
+.risk-dim-name{font-size:11px;color:var(--text2)}
+.risk-dim-track{height:5px;background:var(--s1);border-radius:3px;overflow:hidden}
+.risk-dim-bar{height:100%;border-radius:3px;transition:width .4s ease}
+.risk-dim-val{font-family:var(--mono);font-size:11px;text-align:right}
+/* ── Ask overlay ── */
+#ask-overlay{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding-top:80px}
+#ask-overlay.open{display:flex}
+.ask-container{background:var(--s1);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:680px;box-shadow:0 24px 64px rgba(0,0,0,.4);overflow:hidden}
+.ask-input-row{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border)}
+.ask-input-row svg{color:var(--gold);flex-shrink:0}
+.ask-input{flex:1;background:transparent;border:none;outline:none;font-family:var(--sans);font-size:15px;color:var(--text)}
+.ask-input::placeholder{color:var(--text3)}
+.ask-suggestions{padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border)}
+.ask-pill{font-size:12px;padding:4px 12px;border-radius:var(--r-pill);border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all .1s;font-family:var(--sans)}
+.ask-pill:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+.ask-result{padding:18px;min-height:100px;max-height:400px;overflow-y:auto;font-size:13px;color:var(--text2);line-height:1.7}
+/* ── Onboarding modal ── */
+#onboarding-modal{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+#onboarding-modal.open{display:flex}
+.ob-inner{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-card);max-width:640px;width:calc(100vw - 40px);max-height:85vh;overflow-y:auto;padding:28px;position:relative}
+.ob-close{position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1}
+.ob-section{margin-bottom:18px}
+.ob-section-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);margin-bottom:8px}
+.ob-tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:4px;background:var(--s3);color:var(--text2);margin:2px}
+/* ── Stale panel ── */
+.stale-panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--s2);border-bottom:1px solid var(--border)}
+.stale-panel-title{font-size:13px;font-weight:600;color:var(--text)}
+.stale-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+.stale-section:last-child{border-bottom:none}
+.stale-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:10px}
+.stale-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)}
+.stale-item:last-child{border-bottom:none}
+.stale-item-icon{flex-shrink:0;margin-top:1px}
+.stale-item-text{flex:1;line-height:1.5}
+.stale-sev{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;flex-shrink:0;align-self:flex-start}
+.sev-high{background:var(--red-dim);color:var(--red)}
+.sev-med{background:var(--amber-dim);color:var(--amber)}
+.sev-low{background:var(--teal-dim);color:var(--teal)}
 </style>
 </head>
 <body>
@@ -656,6 +716,10 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
         <div id="notif-list"><div style="padding:16px;font-size:12px;color:var(--text3);text-align:center">Loading…</div></div>
       </div>
     </div>
+    <button class="btn" onclick="openAsk()" title="Ask anything about this repo" style="color:var(--gold);border-color:rgba(201,168,76,.3)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Ask
+    </button>
     <button class="btn" onclick="openReportModal()" style="color:var(--gold);border-color:rgba(201,168,76,.3)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Report
@@ -777,6 +841,10 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
         <select class="ins-author-sel" id="ins-author" onchange="renderInsights()">
           <option value="">All contributors</option>
         </select>
+        <button class="btn" onclick="openOnboarding()" style="font-size:12px;color:var(--gold);border-color:rgba(201,168,76,.3)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Project Overview
+        </button>
       </div>
     </div>
     <!-- KPI strip -->
@@ -921,10 +989,23 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
   <div class="view" id="view-branches">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:13px;color:var(--text3)" id="branch-meta"></div>
-      <button class="btn" onclick="renderBranchView(true)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-        Refresh
-      </button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" id="stale-btn" onclick="analyzeStaleItems()" style="font-size:12px;color:var(--gold);border-color:rgba(201,168,76,.3)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          AI Analysis
+        </button>
+        <button class="btn" onclick="renderBranchView(true)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+    <div id="stale-panel" style="display:none;border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;margin-bottom:16px">
+      <div class="stale-panel-hdr">
+        <span class="stale-panel-title">AI Branch &amp; Activity Analysis</span>
+        <button onclick="document.getElementById('stale-panel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1">✕</button>
+      </div>
+      <div id="stale-panel-body"></div>
     </div>
     <div id="branch-list"></div>
   </div>
@@ -1021,6 +1102,33 @@ GITHUB_TOKEN:      auto-provided by GitHub
       <button class="btn" onclick="document.getElementById('connect-modal').classList.remove('open')">Cancel</button>
       <button class="btn btn-primary" onclick="copySetup()">Copy Setup</button>
     </div>
+  </div>
+</div>
+
+<!-- ASK YOUR REPO OVERLAY -->
+<div id="ask-overlay" onclick="if(event.target===this)closeAsk()">
+  <div class="ask-container">
+    <div class="ask-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="ask-input" id="ask-input" placeholder="Ask anything about this repo…" onkeydown="if(event.key==='Enter')submitAskQuery();if(event.key==='Escape')closeAsk()">
+      <button style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1;padding:4px" onclick="closeAsk()">✕</button>
+    </div>
+    <div class="ask-suggestions">
+      <button class="ask-pill" onclick="prefillAsk('Who are the most active contributors this month?')">Who's most active?</button>
+      <button class="ask-pill" onclick="prefillAsk('What features were added in the last 30 days?')">Recent features</button>
+      <button class="ask-pill" onclick="prefillAsk('Are there any risky or large commits in recent history?')">Risky commits</button>
+      <button class="ask-pill" onclick="prefillAsk('What areas of the codebase change most frequently?')">Hot files</button>
+      <button class="ask-pill" onclick="prefillAsk('Summarise the overall development velocity and team health.')">Team health</button>
+    </div>
+    <div class="ask-result" id="ask-result"><div style="text-align:center;color:var(--text3);font-size:12px;padding:20px 0">Press Enter to ask · ESC to close</div></div>
+  </div>
+</div>
+
+<!-- PROJECT OVERVIEW MODAL -->
+<div id="onboarding-modal" onclick="if(event.target===this)closeOnboarding()">
+  <div class="ob-inner">
+    <button class="ob-close" onclick="closeOnboarding()">✕</button>
+    <div id="onboarding-content"><div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">Generating project overview…</div></div>
   </div>
 </div>
 
@@ -1385,6 +1493,7 @@ function selectRepo(repo) {
   commits = []; prs = []; issues = [];
   branchData = []; _branchList = [];
   issuesLoaded = false; ciCache.clear();
+  prReviewAICache.clear(); prRiskCache.clear(); _onboardingCache = null;
   insDays = 0;
   // Reset insights filter UI to "All time"
   document.querySelectorAll('#view-insights .ftab').forEach((t,i,arr)=>t.classList.toggle('active',i===arr.length-1));
@@ -1784,14 +1893,26 @@ function expandedPRHtml(p) {
       <div class="abox"><div class="albl">PR Quality</div><div class="acontent">${esc(cached.quality)}</div></div>
     </div>
     ${files.length?`<div style="margin-top:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
         <div class="albl">Files Changed (${files.length})</div>
-        <button class="abtn" onclick="toggleDiffView(${num})" id="diff-toggle-${num}" style="font-size:11px;padding:4px 10px">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          Show Diff
-        </button>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="abtn" id="ai-review-btn-${num}" onclick="reviewPRDiff(${num})" style="font-size:11px;padding:4px 10px;color:var(--gold);border-color:rgba(201,168,76,.3)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            AI Review
+          </button>
+          <button class="abtn" id="risk-score-btn-${num}" onclick="scorePRRisk(${num})" style="font-size:11px;padding:4px 10px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Risk Score
+          </button>
+          <button class="abtn" onclick="toggleDiffView(${num})" id="diff-toggle-${num}" style="font-size:11px;padding:4px 10px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Show Diff
+          </button>
+        </div>
       </div>
-      <div id="diff-view-${num}" style="display:none;margin-bottom:10px">${renderDiff(files)}</div>
+      <div id="risk-meter-${num}" class="risk-meter-wrap" style="display:none"></div>
+      <div id="ai-review-wrap-${num}" style="display:none;margin-top:8px"></div>
+      <div id="diff-view-${num}" style="display:none;margin-top:8px;margin-bottom:10px">${renderDiff(files)}</div>
       <div class="pr-files-list">
         ${files.map(f=>`<div class="pr-file-row"><span class="pr-fname">${esc(f.filename)}</span><span class="fadd">+${f.additions}</span><span class="fdel">-${f.deletions}</span></div>`).join('')}
       </div>
@@ -2465,6 +2586,7 @@ function clearCache() {
   commitAnalysisCache.clear(); prAnalysisCache.clear(); commitDetailCache.clear();
   prFilesCache.clear(); prReviewsCache.clear(); prCommentsCache.clear(); prReviewCommentsCache.clear();
   expandedCommits.clear(); expandedPRs.clear();
+  prReviewAICache.clear(); prRiskCache.clear();
   updateCacheStats();
   renderCommitList(); renderRightPanels();
   toast('🗑️','Cache cleared','All analysis data removed');
@@ -3405,6 +3527,311 @@ async function refresh() {
   } finally {
     btn.classList.remove('spinning');
   }
+}
+
+// ── AI FEATURES ──────────────────────────────────────────────────────────────
+const prReviewAICache = new Map();
+const prRiskCache     = new Map();
+let _onboardingCache  = null;
+
+// Close overlays on ESC
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('ask-overlay')?.classList.contains('open')) closeAsk();
+    if (document.getElementById('onboarding-modal')?.classList.contains('open')) closeOnboarding();
+  }
+});
+
+// ── Feature 1: AI Code Review on PR diff ────────────────────────────────────
+async function reviewPRDiff(num) {
+  const key = getKey();
+  if (!key) { switchView('settings'); toast('🔑','API Key Required','Add Anthropic key in Settings'); return; }
+  const wrap = document.getElementById('ai-review-wrap-'+num);
+  if (!wrap) return;
+  if (prReviewAICache.has(num)) {
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+    return;
+  }
+  const btn = document.getElementById('ai-review-btn-'+num);
+  if (btn) { btn.disabled = true; btn.textContent = 'Reviewing…'; }
+  wrap.style.display = 'block';
+  wrap.innerHTML = `<div class="ai-review-wrap"><div class="ai-review-hdr"><span class="ai-review-hdr-title">AI Code Review</span></div><div class="ai-review-body"><div class="skeleton" style="height:50px;border-radius:6px"></div><div class="skeleton" style="height:50px;border-radius:6px;margin-top:8px"></div></div></div>`;
+  try {
+    const files = await fetchPRFiles(num);
+    const pr = prs.find(p=>p.number===num);
+    const patches = files.slice(0,10).map(f =>
+      `File: ${f.filename} (+${f.additions} -${f.deletions})\n${(f.patch||'').slice(0,500)}`
+    ).join('\n\n---\n\n').slice(0,4000);
+    const prompt = `Review this PR diff and identify specific code concerns.\nPR: "${pr?.title||''}"\n\nDiff:\n${patches}\n\nReturn JSON with:\n"issues": array of up to 7 objects, each: {"severity":"critical"|"warning"|"info","file":"filename","description":"1-2 sentences naming exact code construct or pattern"}\n"summary": 1-2 sentence overall verdict\nRules: No em dashes, no markdown. Return ONLY valid JSON.`;
+    const res = await fetch(CLAUDE, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODEL,max_tokens:900,messages:[{role:'user',content:prompt}]})
+    });
+    if (!res.ok) throw new Error('Claude API error');
+    const data = await res.json();
+    let raw = data.content[0].text.trim();
+    if (raw.startsWith('```')) raw = raw.split('\n').slice(1,-1).join('\n').trim();
+    const result = JSON.parse(raw);
+    prReviewAICache.set(num, result);
+    renderAIReview(num, result);
+  } catch(e) {
+    wrap.innerHTML = `<div class="ai-review-wrap"><div class="ai-review-hdr"><span class="ai-review-hdr-title">AI Code Review</span></div><div class="ai-review-body"><div style="color:var(--red);font-size:12px">Review failed: ${esc(e.message)}</div></div></div>`;
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'AI Review'; }
+}
+
+function renderAIReview(num, result) {
+  const wrap = document.getElementById('ai-review-wrap-'+num);
+  if (!wrap) return;
+  const sevClass = {critical:'ar-critical',warning:'ar-warning',info:'ar-info'};
+  const count = result.issues?.length||0;
+  const items = (result.issues||[]).map(i=>`
+    <div class="ar-item ${sevClass[i.severity]||'ar-info'}">
+      <div class="ar-sev">${esc(i.severity||'info')}</div>
+      ${i.file?`<div class="ar-file">${esc(i.file)}</div>`:''}
+      <div class="ar-desc">${esc(i.description)}</div>
+    </div>`).join('');
+  wrap.innerHTML = `<div class="ai-review-wrap">
+    <div class="ai-review-hdr">
+      <span class="ai-review-hdr-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        AI Code Review
+        <span style="background:${count>0?'var(--red-dim)':'var(--teal-dim)'};color:${count>0?'var(--red)':'var(--teal)'};font-size:10px;padding:1px 8px;border-radius:10px">${count>0?count+' issue'+(count>1?'s':''):'Looks good'}</span>
+      </span>
+      <button onclick="document.getElementById('ai-review-wrap-${num}').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;padding:2px">✕</button>
+    </div>
+    <div class="ai-review-body">
+      ${result.summary?`<div style="font-size:12px;color:var(--text2);margin-bottom:6px;line-height:1.5;padding:8px 10px;background:var(--s2);border-radius:6px">${esc(result.summary)}</div>`:''}
+      ${count===0?'<div style="font-size:12px;color:var(--teal)">No significant issues found. Code looks clean.</div>':items}
+    </div>
+  </div>`;
+}
+
+// ── Feature 4: PR Risk Scorer ────────────────────────────────────────────────
+async function scorePRRisk(num) {
+  const key = getKey();
+  if (!key) { switchView('settings'); toast('🔑','API Key Required','Add Anthropic key in Settings'); return; }
+  const wrap = document.getElementById('risk-meter-'+num);
+  if (!wrap) return;
+  if (prRiskCache.has(num)) {
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+    return;
+  }
+  const btn = document.getElementById('risk-score-btn-'+num);
+  if (btn) { btn.disabled = true; }
+  wrap.style.display = 'block';
+  wrap.innerHTML = `<div class="skeleton" style="height:80px;border-radius:8px"></div>`;
+  try {
+    const files = await fetchPRFiles(num);
+    const pr = prs.find(p=>p.number===num);
+    const hasTests = files.some(f=>/test|spec|__tests__/i.test(f.filename));
+    const fileList = files.map(f=>`${f.filename}: +${f.additions} -${f.deletions}`).join('\n');
+    const prompt = `Score this pull request's deployment risk across 4 dimensions.\nPR: "${pr?.title||''}" — ${(pr?.body||'').slice(0,200)||'No description'}\nFiles changed: ${files.length}, Has test files: ${hasTests}\nFile list:\n${fileList}\n\nReturn JSON with:\n"overall": 1-10 (1=very low risk, 10=very high risk)\n"test_coverage": 1-10 (1=well tested, 10=no tests)\n"breaking_changes": 1-10 (1=no breaking changes, 10=high risk)\n"security_risk": 1-10 (1=no concerns, 10=high security risk)\n"deployment_impact": 1-10 (1=minimal impact, 10=high impact)\n"rationale": 1-2 sentence explanation\nReturn ONLY valid JSON.`;
+    const res = await fetch(CLAUDE, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODEL,max_tokens:350,messages:[{role:'user',content:prompt}]})
+    });
+    if (!res.ok) throw new Error('Claude API error');
+    const data = await res.json();
+    let raw = data.content[0].text.trim();
+    if (raw.startsWith('```')) raw = raw.split('\n').slice(1,-1).join('\n').trim();
+    const result = JSON.parse(raw);
+    prRiskCache.set(num, result);
+    renderRiskMeter(num, result);
+  } catch(e) {
+    wrap.innerHTML = `<div style="color:var(--red);font-size:12px;padding:4px">Risk scoring failed: ${esc(e.message)}</div>`;
+  }
+  if (btn) { btn.disabled = false; }
+}
+
+function renderRiskMeter(num, r) {
+  const wrap = document.getElementById('risk-meter-'+num);
+  if (!wrap) return;
+  const overall = r.overall||5;
+  const color = v => v<=3?'var(--teal)':v<=6?'var(--amber)':'var(--red)';
+  const dims = [
+    {name:'Test Coverage',    val:r.test_coverage||5},
+    {name:'Breaking Changes', val:r.breaking_changes||5},
+    {name:'Security Risk',    val:r.security_risk||5},
+    {name:'Deploy Impact',    val:r.deployment_impact||5},
+  ];
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div class="risk-meter-label">Overall Risk Score</div>
+        <div class="risk-meter-score" style="color:${color(overall)}">${overall}<span style="font-size:14px;color:var(--text3)">/10</span></div>
+      </div>
+      <button onclick="document.getElementById('risk-meter-${num}').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;align-self:flex-start">✕</button>
+    </div>
+    <div>${dims.map(d=>`<div class="risk-dim">
+      <span class="risk-dim-name">${d.name}</span>
+      <div class="risk-dim-track"><div class="risk-dim-bar" style="width:${d.val*10}%;background:${color(d.val)}"></div></div>
+      <span class="risk-dim-val" style="color:${color(d.val)}">${d.val}</span>
+    </div>`).join('')}</div>
+    ${r.rationale?`<div style="font-size:11px;color:var(--text3);line-height:1.5;margin-top:8px;border-top:1px solid var(--border);padding-top:8px">${esc(r.rationale)}</div>`:''}`;
+}
+
+// ── Feature 5: Ask Your Repo ─────────────────────────────────────────────────
+function openAsk() {
+  const key = getKey();
+  if (!key) { switchView('settings'); toast('🔑','API Key Required','Add Anthropic key in Settings'); return; }
+  document.getElementById('ask-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('ask-input')?.focus(), 60);
+}
+function closeAsk() { document.getElementById('ask-overlay').classList.remove('open'); }
+function prefillAsk(q) { document.getElementById('ask-input').value=q; document.getElementById('ask-input').focus(); }
+
+async function submitAskQuery() {
+  const q = (document.getElementById('ask-input')?.value||'').trim();
+  if (!q) return;
+  const key = getKey();
+  if (!key) { toast('🔑','API Key Required','Add key in Settings'); closeAsk(); return; }
+  const resultEl = document.getElementById('ask-result');
+  resultEl.innerHTML = '<div style="color:var(--text3);font-size:12px">Thinking…</div>';
+  const recentCommits = commits.slice(0,30).map(c=>
+    `[${detectType(c.commit.message)}] ${c.commit.message.split('\n')[0]} — ${c.commit.author.name} (${c.commit.author.date.slice(0,10)})`
+  ).join('\n');
+  const prSummary = prs.slice(0,15).map(p=>
+    `PR #${p.number}: "${p.title}" by ${p.user.login} — ${p.merged_at?'merged':p.state} (${p.created_at.slice(0,10)})`
+  ).join('\n');
+  const context = `Repository: ${currentRepo?.full_name||'unknown'}\nCommits loaded: ${commits.length}\nPRs loaded: ${prs.length}\n\nRecent commits:\n${recentCommits||'None'}\n\nPull requests:\n${prSummary||'None'}`;
+  const prompt = `You are an intelligent assistant for the repository "${currentRepo?.full_name||''}". Answer the user's question using only the data provided. Be concise, specific, and factual. No markdown headers. Use plain prose.\n\nRepository data:\n${context}\n\nQuestion: ${q}`;
+  try {
+    const res = await fetch(CLAUDE, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODEL,max_tokens:600,messages:[{role:'user',content:prompt}]})
+    });
+    if (!res.ok) throw new Error('Claude API error');
+    const data = await res.json();
+    resultEl.innerHTML = `<div style="line-height:1.75">${fmt(data.content[0].text.trim())}</div>`;
+  } catch(e) {
+    resultEl.innerHTML = `<div style="color:var(--red);font-size:12px">Failed: ${esc(e.message)}</div>`;
+  }
+}
+
+// ── Feature 8: Project Overview / Onboarding ─────────────────────────────────
+function openOnboarding() {
+  const key = getKey();
+  if (!key) { switchView('settings'); toast('🔑','API Key Required','Add Anthropic key in Settings'); return; }
+  document.getElementById('onboarding-modal').classList.add('open');
+  if (_onboardingCache) { renderOnboarding(_onboardingCache); return; }
+  generateOnboarding();
+}
+function closeOnboarding() { document.getElementById('onboarding-modal')?.classList.remove('open'); }
+
+async function generateOnboarding() {
+  const key = getKey();
+  if (!key) return;
+  const content = document.getElementById('onboarding-content');
+  content.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">Generating project overview…</div>';
+  const typeBreakdown = {};
+  commits.forEach(c=>{ const t=detectType(c.commit.message); typeBreakdown[t]=(typeBreakdown[t]||0)+1; });
+  const authors = [...new Set(commits.map(c=>c.commit.author.name))].join(', ');
+  const recentPRs = prs.slice(0,10).map(p=>`"${p.title}" (${p.merged_at?'merged':p.state})`).join('\n');
+  const sampleCommits = commits.slice(0,20).map(c=>c.commit.message.split('\n')[0]).join('\n');
+  const filesSeen = new Set();
+  commitDetailCache.forEach(d=>(d.files||[]).forEach(f=>filesSeen.add(f.filename)));
+  prFilesCache.forEach(files=>files.forEach(f=>filesSeen.add(f.filename)));
+  const prompt = `Generate a structured project overview for onboarding a new developer.\n\nRepo: ${currentRepo?.full_name}\nLanguage: ${currentRepo?.language||'Unknown'}\nDescription: ${currentRepo?.description||'None'}\nCommits loaded: ${commits.length}\nContributors: ${authors}\nCommit types: ${Object.entries(typeBreakdown).map(([t,n])=>t+':'+n).join(', ')}\n\nRecent PRs:\n${recentPRs||'None'}\n\nSample commits:\n${sampleCommits||'None'}\n\nFiles seen: ${[...filesSeen].slice(0,25).join(', ')||'None'}\n\nReturn JSON with:\n"project_type": 1-2 sentences on what this project is and its purpose\n"tech_stack": array of strings (technologies/frameworks detected)\n"key_modules": array of strings (main areas inferred from file paths and history)\n"team_structure": 1-2 sentences on team and contribution patterns\n"recent_focus": array of 3-4 strings on what the team has been working on\n"onboarding_tips": array of 3-4 actionable strings for a new developer\n"health_snapshot": 1-2 sentences on codebase health\nReturn ONLY valid JSON.`;
+  try {
+    const res = await fetch(CLAUDE, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODEL,max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    if (!res.ok) throw new Error('Claude API error');
+    const data = await res.json();
+    let raw = data.content[0].text.trim();
+    if (raw.startsWith('```')) raw = raw.split('\n').slice(1,-1).join('\n').trim();
+    _onboardingCache = JSON.parse(raw);
+    renderOnboarding(_onboardingCache);
+  } catch(e) {
+    content.innerHTML = `<div style="color:var(--red);font-size:13px;text-align:center;padding:20px">Failed: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderOnboarding(r) {
+  const content = document.getElementById('onboarding-content');
+  content.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px">
+      <div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px">${esc(currentRepo?.name||'Project Overview')}</div>
+        <div style="font-size:12px;color:var(--text3)">${esc(currentRepo?.full_name||'')}</div>
+      </div>
+      ${currentRepo?.language?`<span style="font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:var(--r-pill);background:var(--s3);color:var(--text3);white-space:nowrap">${esc(currentRepo.language)}</span>`:''}
+    </div>
+    ${r.project_type?`<div class="ob-section"><div class="ob-section-label">What is this project?</div><div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(r.project_type)}</div></div>`:''}
+    ${r.tech_stack?.length?`<div class="ob-section"><div class="ob-section-label">Tech Stack</div><div>${(r.tech_stack||[]).map(t=>`<span class="ob-tag">${esc(t)}</span>`).join('')}</div></div>`:''}
+    ${r.key_modules?.length?`<div class="ob-section"><div class="ob-section-label">Key Areas</div><div>${(r.key_modules||[]).map(m=>`<span class="ob-tag">${esc(m)}</span>`).join('')}</div></div>`:''}
+    ${r.team_structure?`<div class="ob-section"><div class="ob-section-label">Team</div><div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(r.team_structure)}</div></div>`:''}
+    ${r.recent_focus?.length?`<div class="ob-section"><div class="ob-section-label">Recent Focus</div><div style="display:flex;flex-direction:column;gap:7px">${(r.recent_focus||[]).map(f=>`<div style="display:flex;gap:8px;font-size:12px;color:var(--text2);align-items:flex-start"><span style="color:var(--gold);flex-shrink:0;margin-top:2px">◆</span>${esc(f)}</div>`).join('')}</div></div>`:''}
+    ${r.onboarding_tips?.length?`<div class="ob-section"><div class="ob-section-label">Onboarding Tips</div><div style="display:flex;flex-direction:column;gap:8px">${(r.onboarding_tips||[]).map((t,i)=>`<div style="display:flex;gap:10px;font-size:12px;color:var(--text2);padding:10px 12px;background:var(--s2);border-radius:8px"><span style="font-family:var(--mono);font-size:10px;color:var(--teal);flex-shrink:0;margin-top:1px">${i+1}.</span>${esc(t)}</div>`).join('')}</div></div>`:''}
+    ${r.health_snapshot?`<div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:14px"><div class="ob-section-label" style="margin-bottom:8px">Codebase Health</div><div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(r.health_snapshot)}</div></div>`:''}`;
+}
+
+// ── Feature 9: Stale Branch / Activity Analyser ──────────────────────────────
+async function analyzeStaleItems() {
+  const key = getKey();
+  if (!key) { switchView('settings'); toast('🔑','API Key Required','Add Anthropic key in Settings'); return; }
+  const panel = document.getElementById('stale-panel');
+  const body  = document.getElementById('stale-panel-body');
+  const btn   = document.getElementById('stale-btn');
+  if (panel.style.display === 'block') { panel.style.display='none'; return; }
+  panel.style.display = 'block';
+  body.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--text3)">Analysing branches and activity patterns…</div>';
+  if (btn) btn.disabled = true;
+  try {
+    const defaultBranch = currentRepo?.default_branch||'main';
+    const branchSummary = branchData.slice(0,20).map(b=>
+      `${b.name}: ${b.ageDays||0}d old, ${b.ahead} ahead, ${b.behind} behind${b.pr?' (has PR)':''}${!b.isDefault&&(b.ageDays||0)>60?' [STALE]':''}`
+    ).join('\n');
+    const prSummary = prs.slice(0,15).map(p=>
+      `#${p.number} "${p.title}" by ${p.user.login} — ${p.state} — opened ${Math.floor((Date.now()-new Date(p.created_at))/86400000)}d ago${p.merged_at?' merged':''}`
+    ).join('\n');
+    const typeBreakdown = {};
+    commits.forEach(c=>{ const t=detectType(c.commit.message); typeBreakdown[t]=(typeBreakdown[t]||0)+1; });
+    const prompt = `Analyse this repository's branch health and development patterns.\n\nRepo: ${currentRepo?.full_name}\nDefault branch: ${defaultBranch}\nTotal branches: ${branchData.length}\nStale branches (30d+): ${branchData.filter(b=>!b.isDefault&&(b.ageDays||0)>30).length}\nLong-running open PRs (14d+): ${prs.filter(p=>p.state==='open'&&(Date.now()-new Date(p.created_at))>14*86400000).length}\n\nBranches:\n${branchSummary||'None'}\n\nPRs:\n${prSummary||'None'}\n\nCommit type mix: ${Object.entries(typeBreakdown).map(([t,n])=>t+':'+n).join(', ')}\n\nReturn JSON with:\n"stale_branches": array of objects {"name":"branch name","concern":"1 sentence","severity":"high"|"med"|"low"}\n"long_prs": array of objects {"number":N,"title":"short title","concern":"1 sentence","severity":"high"|"med"|"low"}\n"activity_insights": array of 2-3 strings about patterns or risks\n"recommendations": array of 3 actionable strings for the team\nOnly flag actual problems. Return ONLY valid JSON.`;
+    const res = await fetch(CLAUDE, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODEL,max_tokens:800,messages:[{role:'user',content:prompt}]})
+    });
+    if (!res.ok) throw new Error('Claude API error');
+    const data = await res.json();
+    let raw = data.content[0].text.trim();
+    if (raw.startsWith('```')) raw = raw.split('\n').slice(1,-1).join('\n').trim();
+    renderStalePanel(JSON.parse(raw));
+  } catch(e) {
+    body.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--red)">Analysis failed: ${esc(e.message)}</div>`;
+  }
+  if (btn) btn.disabled = false;
+}
+
+function renderStalePanel(r) {
+  const body = document.getElementById('stale-panel-body');
+  const sev = s => `<span class="stale-sev sev-${s||'low'}">${s||'low'}</span>`;
+  let html = '';
+  if (r.stale_branches?.length) {
+    html += `<div class="stale-section"><div class="stale-section-lbl">Stale Branches (${r.stale_branches.length})</div>
+      ${r.stale_branches.map(b=>`<div class="stale-item"><span class="stale-item-icon">⎇</span><div class="stale-item-text"><span style="font-family:var(--mono);color:var(--text)">${esc(b.name)}</span><br><span style="color:var(--text3)">${esc(b.concern)}</span></div>${sev(b.severity)}</div>`).join('')}</div>`;
+  }
+  if (r.long_prs?.length) {
+    html += `<div class="stale-section"><div class="stale-section-lbl">Long-running PRs (${r.long_prs.length})</div>
+      ${r.long_prs.map(p=>`<div class="stale-item"><span class="stale-item-icon" style="color:var(--gold)">⟵</span><div class="stale-item-text"><span style="font-family:var(--mono);color:var(--gold)">#${p.number}</span> ${esc(p.title||'')}<br><span style="color:var(--text3)">${esc(p.concern)}</span></div>${sev(p.severity)}</div>`).join('')}</div>`;
+  }
+  if (r.activity_insights?.length) {
+    html += `<div class="stale-section"><div class="stale-section-lbl">Activity Insights</div>
+      ${r.activity_insights.map(s=>`<div style="display:flex;gap:8px;font-size:12px;color:var(--text2);line-height:1.5;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--teal);flex-shrink:0">◆</span>${esc(s)}</div>`).join('')}</div>`;
+  }
+  if (r.recommendations?.length) {
+    html += `<div class="stale-section"><div class="stale-section-lbl">Recommendations</div>
+      ${r.recommendations.map((s,i)=>`<div style="display:flex;gap:10px;font-size:12px;color:var(--text2);padding:8px;background:var(--s2);border-radius:6px;margin-bottom:6px"><span style="font-family:var(--mono);color:var(--gold);flex-shrink:0">${i+1}.</span>${esc(s)}</div>`).join('')}</div>`;
+  }
+  if (!html) html = `<div class="stale-section"><div style="font-size:12px;color:var(--teal);text-align:center;padding:8px">No significant issues found. Repository looks healthy!</div></div>`;
+  body.innerHTML = html;
 }
 
 // ── INIT (runs after a repo is selected) ─────────────────────────────────────
