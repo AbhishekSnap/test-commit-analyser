@@ -2952,11 +2952,21 @@ async function refresh() {
   const btn=document.getElementById('refresh-btn');
   btn.classList.add('spinning');
   try {
+    // Clear stale expanded/cached state so everything reloads fresh
+    expandedCommits.clear(); expandedPRs.clear();
+    prFilesCache.clear(); prReviewsCache.clear(); prCommentsCache.clear(); prReviewCommentsCache.clear();
+    branchData = []; _branchList = [];
+
     await Promise.all([fetchCommits(), fetchPRs()]);
-    lastFetchedAt=new Date();
-    document.getElementById('last-fetched').textContent=timeAgo(lastFetchedAt);
-    renderCommitList(); renderPRList(); renderRightPanels(); updateStats(); updatePRStats();
-    toast('✅','Refreshed',`${commits.length} commits and ${prs.length} PRs loaded`);
+    lastFetchedAt = new Date();
+    document.getElementById('last-fetched').textContent = timeAgo(lastFetchedAt);
+
+    // Re-render every view so whatever is visible is up to date
+    renderCommitList(); renderPRList(); renderRightPanels(); updateStats(); updatePRStats(); renderLoadMore();
+    if (currentView === 'insights') renderInsights();
+    if (currentView === 'branches') renderBranchView(true);
+
+    toast('✅','Refreshed',`${commits.length} commits · ${prs.length} PRs synced from GitHub`);
   } catch(e) {
     if(e.message!=='rate-limit'&&e.message!=='not-found') toast('❌','Fetch failed',e.message);
   } finally {
