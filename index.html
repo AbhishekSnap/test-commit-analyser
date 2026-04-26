@@ -2793,9 +2793,9 @@ function reportPreset(days) {
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('report-to').value = today;
   if (days === '0') {
-    const earliest = commits.length
-      ? commits[commits.length-1].commit.author.date.slice(0,10)
-      : new Date(Date.now()-365*86400000).toISOString().slice(0,10);
+    // Use repo creation date so the fetch loop runs until all commits are exhausted.
+    // Fall back to GitHub's founding year if unavailable.
+    const earliest = currentRepo?.created_at?.slice(0,10) || '2008-01-01';
     document.getElementById('report-from').value = earliest;
   } else {
     const past = new Date(Date.now() - Number(days)*86400000).toISOString().slice(0,10);
@@ -2829,27 +2829,44 @@ async function generateReport() {
   const fromDate = new Date(from);
   const toDate   = new Date(to + 'T23:59:59');
 
-  // Fetch enough commit pages to cover the selected date range.
-  // GitHub returns commits newest-first, so stop once the oldest commit
-  // in the batch is already before fromDate — no earlier pages can help.
+  // Fetch all commit pages that fall within the date range, independent of
+  // what the user has already loaded. GitHub returns commits newest-first so
+  // we stop as soon as the oldest commit in a batch predates fromDate.
   try {
-    if (hasMoreCommits) {
-      const q = currentBranch ? `&sha=${encodeURIComponent(currentBranch)}` : '';
-      let oldestLoaded = commits.length
-        ? new Date(commits[commits.length-1].commit.author.date)
-        : new Date();
-      while (hasMoreCommits && oldestLoaded >= fromDate) {
-        status.textContent = `Loading commits (${commits.length} so far)...`;
-        commitPage++;
-        const batch = await ghFetch(`${API}/commits?per_page=${PAGE_SIZE_COMMITS}&page=${commitPage}${q}`);
-        commits = commits.concat(batch);
-        hasMoreCommits = batch.length === PAGE_SIZE_COMMITS;
-        if (batch.length) oldestLoaded = new Date(batch[batch.length-1].commit.author.date);
-      }
-      renderCommitList(); renderRightPanels(); updateStats(); renderLoadMore();
+    const q = currentBranch ? `&sha=${encodeURIComponent(currentBranch)}` : '';
+    let oldestLoaded = commits.length
+      ? new Date(commits[commits.length-1].commit.author.date)
+      : new Date();
+    while (hasMoreCommits && oldestLoaded >= fromDate) {
+      status.textContent = `Loading commits (${commits.length} so far)...`;
+      commitPage++;
+      const batch = await ghFetch(`${API}/commits?per_page=${PAGE_SIZE_COMMITS}&page=${commitPage}${q}`);
+      commits = commits.concat(batch);
+      hasMoreCommits = batch.length === PAGE_SIZE_COMMITS;
+      if (batch.length) oldestLoaded = new Date(batch[batch.length-1].commit.author.date);
     }
+    renderCommitList(); renderRightPanels(); updateStats(); renderLoadMore();
   } catch(e) {
     status.textContent = 'Failed to load commits: ' + e.message;
+    btn.disabled = false;
+    return;
+  }
+
+  // Fetch all PR pages that fall within the date range. PRs are returned
+  // newest-first (by created_at) so same early-exit logic applies.
+  try {
+    let oldestPR = prs.length ? new Date(prs[prs.length-1].created_at) : new Date();
+    while (hasMorePRs && oldestPR >= fromDate) {
+      status.textContent = `Loading PRs (${prs.length} so far)...`;
+      prPage++;
+      const batch = await ghFetch(`${API}/pulls?state=all&per_page=${PAGE_SIZE_PRS}&page=${prPage}`);
+      prs = prs.concat(batch);
+      hasMorePRs = batch.length === PAGE_SIZE_PRS;
+      if (batch.length) oldestPR = new Date(batch[batch.length-1].created_at);
+    }
+    renderPRList(); updatePRStats(); renderLoadMore();
+  } catch(e) {
+    status.textContent = 'Failed to load PRs: ' + e.message;
     btn.disabled = false;
     return;
   }
