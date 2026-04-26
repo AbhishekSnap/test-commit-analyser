@@ -2409,7 +2409,7 @@ function renderInsKPIs() {
   // commits delta vs previous period
   const prevCutoff = insDays ? new Date(Date.now() - 2*insDays*86400000) : null;
   const prevCutoffEnd = insDays ? new Date(Date.now() - insDays*86400000) : null;
-  const prevCs = insDays ? commits.filter(c=>{
+  const prevCs = insDays ? (insAllCommits||commits).filter(c=>{
     const d=new Date(c.commit.author.date);
     return d>=prevCutoff && d<prevCutoffEnd;
   }) : [];
@@ -2431,7 +2431,7 @@ function renderInsKPIs() {
   // churn ratio (add/del)
   let totalAdd=0, totalDel=0;
   for(const [sha,d] of commitDetailCache.entries()) {
-    const c=commits.find(x=>x.sha===sha);
+    const c=(insAllCommits||commits).find(x=>x.sha===sha);
     if(!c) continue;
     const cutoff = insDays ? new Date(Date.now()-insDays*86400000) : null;
     if(cutoff && new Date(c.commit.author.date)<cutoff) continue;
@@ -2642,7 +2642,7 @@ function renderContribTable() {
   </tr>`;
 
   const data = {};
-  commits.forEach(c=>{
+  (insAllCommits||commits).forEach(c=>{
     const a=c.commit.author.name;
     if(author && a!==author) return;
     if(!data[a]) data[a]={name:a,commits:0,period:0,additions:0,deletions:0,recent:c.commit.author.date,weeks:new Array(8).fill(0)};
