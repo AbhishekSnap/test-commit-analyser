@@ -270,6 +270,30 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .notif-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4}
 .notif-sub{font-size:11px;color:var(--text3)}
 .notif-empty{padding:24px 16px;font-size:12px;color:var(--text3);text-align:center}
+/* ── Notif tabs ── */
+.notif-tabs{display:flex;gap:0;flex:1}
+.notif-tab{flex:1;padding:9px 6px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;color:var(--text3);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;font-family:var(--sans)}
+.notif-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+/* ── Alert feed ── */
+.alert-feed-item{display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);align-items:flex-start}
+.alert-feed-item.unread{background:var(--s2);border-left:2px solid var(--gold)}
+.alert-feed-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.alert-feed-body{flex:1;min-width:0}
+.alert-feed-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alert-feed-sub{font-size:11px;color:var(--text3);line-height:1.4}
+.alert-feed-time{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+/* ── Alert rules ── */
+.rule-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)}
+.rule-label{flex:1;min-width:0;font-size:12px;color:var(--text2);line-height:1.4}
+.rule-type-badge{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:4px;background:var(--teal-dim);color:var(--teal);white-space:nowrap;display:inline-block;margin-bottom:2px}
+.rule-builder{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.rule-select{background:var(--s1);border:1px solid var(--border2);color:var(--text);border-radius:var(--r-btn);padding:6px 10px;font-size:12px;outline:none;cursor:pointer;font-family:var(--sans)}
+.rule-param-inp{background:var(--s1);border:1px solid var(--border2);color:var(--text);border-radius:var(--r-btn);padding:6px 10px;font-size:12px;outline:none;width:130px;font-family:var(--sans)}
+.rule-param-inp::placeholder{color:var(--text3)}
+.perm-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 10px;border-radius:var(--r-pill);font-weight:600}
+.perm-granted{background:rgba(74,222,128,.1);color:var(--green)}
+.perm-denied{background:var(--red-dim);color:var(--red)}
+.perm-default{background:var(--s3);color:var(--text3)}
 /* ── Issues ── */
 .issue-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-card);padding:14px 16px;margin-bottom:8px;display:flex;gap:14px;align-items:flex-start;transition:border-color .15s}
 .issue-card:hover{border-color:var(--border2)}
@@ -743,10 +767,16 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
       </button>
       <div class="notif-panel" id="notif-panel" style="display:none">
         <div class="notif-header">
-          <span style="font-weight:600;font-size:13px">Notifications</span>
-          <button onclick="markAllRead()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3)">Mark all read</button>
+          <div class="notif-tabs">
+            <button class="notif-tab active" id="ntab-gh" onclick="switchNotifTab('gh')">GitHub</button>
+            <button class="notif-tab" id="ntab-alerts" onclick="switchNotifTab('alerts')">Alerts <span id="ntab-alerts-count" style="display:none;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:3px"></span></button>
+          </div>
+          <button onclick="markAllRead()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);margin-left:8px;white-space:nowrap">Mark read</button>
         </div>
-        <div id="notif-list"><div style="padding:16px;font-size:12px;color:var(--text3);text-align:center">Loading…</div></div>
+        <div id="notif-list" style="max-height:380px;overflow-y:auto"><div style="padding:16px;font-size:12px;color:var(--text3);text-align:center">Loading…</div></div>
+        <div id="alert-feed-list" style="display:none;max-height:380px;overflow-y:auto">
+          <div class="notif-empty">No alerts yet.<br>Configure rules in Settings.</div>
+        </div>
       </div>
     </div>
     <button class="btn" onclick="openAsk()" title="Ask anything about this repo" style="color:var(--gold);border-color:rgba(201,168,76,.3)">
@@ -988,6 +1018,38 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
         </div>
         <div style="margin-top:12px">
           <button class="btn" onclick="clearCache()">Clear Analysis Cache</button>
+        </div>
+      </div>
+
+      <div class="sc fw">
+        <div class="sc-title">Alerts &amp; Notifications</div>
+        <div class="srow">
+          <div>
+            <div class="srow-lbl">Browser Notifications</div>
+            <div class="srow-sub">OS-level alerts when the tab is in the background</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="perm-status-badge" class="perm-status perm-default">Not requested</span>
+            <button class="btn" id="perm-req-btn" onclick="requestNotifPermission()" style="font-size:12px">Enable</button>
+          </div>
+        </div>
+        <div style="margin-top:20px">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Alert Rules</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Rules are evaluated on every 2-minute auto-refresh. Alerts appear as OS notifications, in-app toasts, and in the Alerts feed.</div>
+          <div id="alert-rules-list"></div>
+          <div class="rule-builder">
+            <select id="new-rule-type" class="rule-select" onchange="updateRuleParamHint()">
+              <option value="new_commit">Any new commit</option>
+              <option value="new_pr">Any new PR opened</option>
+              <option value="pr_merged">Any PR merged</option>
+              <option value="pr_stale">PR stale for N days</option>
+              <option value="author_commit">New commit by author</option>
+              <option value="author_pr">New PR by author</option>
+            </select>
+            <input id="new-rule-param" class="rule-param-inp" placeholder="" style="display:none">
+            <button class="btn btn-primary" onclick="addAlertRule()" style="font-size:12px">+ Add Rule</button>
+          </div>
+          <div id="rule-param-hint" style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5"></div>
         </div>
       </div>
     </div>
@@ -1528,6 +1590,7 @@ function selectRepo(repo) {
   branchData = []; _branchList = [];
   issuesLoaded = false; ciCache.clear();
   prReviewAICache.clear(); prRiskCache.clear(); _onboardingCache = null;
+  _stalertedPRs = new Set(); _lastKnownCommitSha = null; _lastKnownPRNums = new Set(); _lastKnownPRStates = new Map();
   insDays = 0;
   // Reset insights filter UI to "All time"
   document.querySelectorAll('#view-insights .ftab').forEach((t,i,arr)=>t.classList.toggle('active',i===arr.length-1));
@@ -2649,7 +2712,7 @@ function switchView(v) {
   if(v==='insights') renderInsights();
   if(v==='branches') renderBranchView();
   if(v==='issues')   { if(!issuesLoaded) fetchIssues(); else renderIssueList(); }
-  if(v==='settings') { document.getElementById('api-key-inp').value=getKey()?'••••••••••••':''; updateCacheStats(); }
+  if(v==='settings') { document.getElementById('api-key-inp').value=getKey()?'••••••••••••':''; updateCacheStats(); renderAlertRules(); updatePermBadge(); }
 }
 
 // ── ACTIONS ──────────────────────────────────────────────────────────────────
@@ -3056,13 +3119,263 @@ ${r.risk_summary ? `<div class="section">
 
 function disconnectRepo() { backToRepos(); toast('🔌','Switched','Back to repo picker'); }
 
+// ── ALERT RULES ───────────────────────────────────────────────────────────────
+let alertRules = JSON.parse(localStorage.getItem('gd_alert_rules') || '[]');
+let _alertFeed  = [];   // in-memory, max 30 items
+let _alertUnread = 0;
+let _lastKnownCommitSha = null;
+let _lastKnownPRNums    = new Set();
+let _lastKnownPRStates  = new Map(); // prNum -> 'open'|'merged'|'closed'
+let _stalertedPRs       = new Set(); // PR nums already fired a stale alert this session
+let _notifActiveTab     = 'gh';
+
+const RULE_LABELS = {
+  new_commit:    'Any new commit',
+  new_pr:        'Any new PR opened',
+  pr_merged:     'Any PR merged',
+  pr_stale:      'PR stale for N days',
+  author_commit: 'Commit by author',
+  author_pr:     'PR opened by author',
+};
+
+function initAlertTracking() {
+  _lastKnownCommitSha = commits[0]?.sha || null;
+  _lastKnownPRNums    = new Set(prs.map(p => p.number));
+  _lastKnownPRStates  = new Map(prs.map(p => [p.number, p.merged_at ? 'merged' : p.state]));
+  _stalertedPRs       = new Set();
+  // Evaluate stale rules immediately on load (once per PR per session)
+  evaluateAlertRules([], []);
+}
+
+function fireAlert(type, title, body) {
+  const item = { id: Date.now() + Math.random(), type, title, body, time: new Date(), read: false };
+  _alertFeed.unshift(item);
+  if (_alertFeed.length > 30) _alertFeed.pop();
+  _alertUnread = _alertFeed.filter(a => !a.read).length;
+  updateAlertBadge();
+
+  // In-app toast
+  const icon = { commit:'⬡', pr:'⟵', merge:'✓', stale:'⏱' };
+  toast(icon[type] || '🔔', title, body);
+
+  // OS browser notification
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      const n = new Notification('Git Digest — ' + title, { body, tag: 'gd-' + type });
+      setTimeout(() => n.close(), 7000);
+    } catch(_) {}
+  }
+
+  // Refresh feed panel if it is visible
+  const feedEl = document.getElementById('alert-feed-list');
+  if (feedEl && feedEl.style.display !== 'none') renderAlertFeed();
+}
+
+function updateAlertBadge() {
+  const badge = document.getElementById('notif-badge');
+  const tabCount = document.getElementById('ntab-alerts-count');
+  if (badge) {
+    if (_alertUnread > 0) { badge.textContent = _alertUnread > 9 ? '9+' : _alertUnread; badge.style.display = 'flex'; }
+    else badge.style.display = 'none';
+  }
+  if (tabCount) {
+    if (_alertUnread > 0) { tabCount.textContent = _alertUnread > 9 ? '9+' : _alertUnread; tabCount.style.display = 'inline'; }
+    else tabCount.style.display = 'none';
+  }
+}
+
+function evaluateAlertRules(newCommitsBatch, newPRsBatch) {
+  const enabled = alertRules.filter(r => r.enabled);
+  if (!enabled.length) return;
+
+  const freshCommits = newCommitsBatch.filter(c => !commits.find(x => x.sha === c.sha));
+  const freshPRs     = newPRsBatch.filter(p => !_lastKnownPRNums.has(p.number));
+  const mergedPRs    = newPRsBatch.filter(p => _lastKnownPRStates.get(p.number) === 'open' && p.merged_at);
+
+  for (const rule of enabled) {
+    switch (rule.type) {
+      case 'new_commit':
+        freshCommits.forEach(c => fireAlert('commit',
+          c.commit.message.split('\n')[0].slice(0, 70),
+          'By ' + c.commit.author.name + ' in ' + (currentRepo?.name || 'repo')));
+        break;
+      case 'new_pr':
+        freshPRs.forEach(p => fireAlert('pr',
+          'New PR #' + p.number + ': ' + p.title.slice(0, 55),
+          'By ' + p.user.login));
+        break;
+      case 'pr_merged':
+        mergedPRs.forEach(p => fireAlert('merge',
+          'PR #' + p.number + ' merged: ' + p.title.slice(0, 50),
+          'By ' + p.user.login));
+        break;
+      case 'pr_stale': {
+        const days = parseInt(rule.param) || 3;
+        prs.filter(p => p.state === 'open' && !_stalertedPRs.has(p.number)).forEach(p => {
+          const age = Math.floor((Date.now() - new Date(p.created_at)) / 86400000);
+          if (age >= days) {
+            _stalertedPRs.add(p.number);
+            fireAlert('stale', 'PR #' + p.number + ' is stale (' + age + 'd old)', p.title.slice(0, 60));
+          }
+        });
+        break;
+      }
+      case 'author_commit':
+        freshCommits
+          .filter(c => (c.commit.author.name || '').toLowerCase().includes((rule.param || '').toLowerCase()))
+          .forEach(c => fireAlert('commit',
+            'Commit by ' + c.commit.author.name,
+            c.commit.message.split('\n')[0].slice(0, 60)));
+        break;
+      case 'author_pr':
+        freshPRs
+          .filter(p => p.user.login.toLowerCase().includes((rule.param || '').toLowerCase()))
+          .forEach(p => fireAlert('pr',
+            'PR by ' + p.user.login + ': ' + p.title.slice(0, 50),
+            'PR #' + p.number + ' opened'));
+        break;
+    }
+  }
+
+  // Advance snapshots
+  if (freshCommits.length) _lastKnownCommitSha = newCommitsBatch[0]?.sha;
+  freshCommits.forEach(c => { _lastKnownPRNums.add(c.number); }); // commits don't have numbers — handled below
+  freshPRs.forEach(p => { _lastKnownPRNums.add(p.number); _lastKnownPRStates.set(p.number, p.merged_at ? 'merged' : p.state); });
+  mergedPRs.forEach(p => _lastKnownPRStates.set(p.number, 'merged'));
+}
+
+function requestNotifPermission() {
+  if (!('Notification' in window)) { toast('❌', 'Not supported', 'Your browser does not support web notifications'); return; }
+  Notification.requestPermission().then(perm => {
+    updatePermBadge();
+    if (perm === 'granted') toast('🔔', 'Notifications enabled', 'OS alerts will fire when rules match');
+    else if (perm === 'denied') toast('❌', 'Permission denied', 'Allow notifications in your browser site settings');
+  });
+}
+
+function updatePermBadge() {
+  const badge = document.getElementById('perm-status-badge');
+  const btn   = document.getElementById('perm-req-btn');
+  if (!badge) return;
+  const perm = ('Notification' in window) ? Notification.permission : 'denied';
+  badge.className = 'perm-status ' + (perm === 'granted' ? 'perm-granted' : perm === 'denied' ? 'perm-denied' : 'perm-default');
+  badge.textContent = perm === 'granted' ? '● Enabled' : perm === 'denied' ? '✕ Denied — change in browser settings' : 'Not requested';
+  if (btn) btn.style.display = perm === 'default' ? '' : 'none';
+}
+
+function updateRuleParamHint() {
+  const type = document.getElementById('new-rule-type')?.value;
+  const inp  = document.getElementById('new-rule-param');
+  const hint = document.getElementById('rule-param-hint');
+  const needsParam = { pr_stale: 'Days (e.g. 3)', author_commit: 'Author name or username', author_pr: 'GitHub username' };
+  if (inp) { inp.style.display = needsParam[type] ? '' : 'none'; inp.placeholder = needsParam[type] || ''; inp.value = ''; }
+  const hints = {
+    new_commit:    'Fires on every new commit detected during auto-refresh.',
+    new_pr:        'Fires whenever a new PR is opened in this repo.',
+    pr_merged:     'Fires when an open PR gets merged.',
+    pr_stale:      'Fires once per PR that has been open longer than N days. Resets on repo switch.',
+    author_commit: 'Fires when a new commit by this author is detected.',
+    author_pr:     'Fires when a new PR is opened by this author.',
+  };
+  if (hint) hint.textContent = hints[type] || '';
+}
+
+function addAlertRule() {
+  const type  = document.getElementById('new-rule-type')?.value;
+  const param = (document.getElementById('new-rule-param')?.value || '').trim();
+  if (['pr_stale','author_commit','author_pr'].includes(type) && !param) {
+    toast('❌', 'Parameter required', 'Please fill in the required field'); return;
+  }
+  alertRules.push({ id: Date.now().toString(), type, param, enabled: true });
+  localStorage.setItem('gd_alert_rules', JSON.stringify(alertRules));
+  renderAlertRules();
+  toast('🔔', 'Alert rule added', RULE_LABELS[type] + (param ? ': ' + param : ''));
+}
+
+function removeAlertRule(id) {
+  alertRules = alertRules.filter(r => r.id !== id);
+  localStorage.setItem('gd_alert_rules', JSON.stringify(alertRules));
+  renderAlertRules();
+}
+
+function toggleAlertRule(id) {
+  const r = alertRules.find(r => r.id === id);
+  if (r) { r.enabled = !r.enabled; localStorage.setItem('gd_alert_rules', JSON.stringify(alertRules)); renderAlertRules(); }
+}
+
+function renderAlertRules() {
+  const el = document.getElementById('alert-rules-list');
+  if (!el) return;
+  updatePermBadge();
+  if (!alertRules.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:6px 0 10px">No rules yet. Add one below to start monitoring.</div>';
+    return;
+  }
+  el.innerHTML = alertRules.map(r => `
+    <div class="rule-item">
+      <div class="rule-label">
+        <div class="rule-type-badge">${esc(RULE_LABELS[r.type] || r.type)}</div>
+        ${r.param ? `<div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:2px">${esc(r.param)}</div>` : ''}
+      </div>
+      <label class="toggle" style="flex-shrink:0;transform:scale(.85);origin:right">
+        <input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleAlertRule('${r.id}')">
+        <span class="t-track"></span><span class="t-thumb"></span>
+      </label>
+      <button onclick="removeAlertRule('${r.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;line-height:1;padding:2px 4px;flex-shrink:0" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function renderAlertFeed() {
+  const el = document.getElementById('alert-feed-list');
+  if (!el) return;
+  if (!_alertFeed.length) {
+    el.innerHTML = '<div class="notif-empty">No alerts yet.<br><span style="color:var(--text3)">Configure rules in Settings to start monitoring.</span></div>';
+    return;
+  }
+  const typeColor = { commit:'var(--blue)', pr:'var(--gold)', merge:'var(--teal)', stale:'var(--amber)' };
+  const typeIcon  = {
+    commit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="4"/><line x1="1" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="23" y2="12"/></svg>`,
+    pr:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 012 2v7M6 9v12"/></svg>`,
+    merge:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 009 9"/></svg>`,
+    stale:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  };
+  el.innerHTML = _alertFeed.map(a => `
+    <div class="alert-feed-item ${a.read ? '' : 'unread'}">
+      <div class="alert-feed-icon" style="background:${(typeColor[a.type]||'var(--text3)')}20;color:${typeColor[a.type]||'var(--text3)'}">
+        ${typeIcon[a.type] || '🔔'}
+      </div>
+      <div class="alert-feed-body">
+        <div class="alert-feed-title">${esc(a.title)}</div>
+        <div class="alert-feed-sub">${esc(a.body)}</div>
+        <div class="alert-feed-time">${timeAgo(a.time)}</div>
+      </div>
+    </div>`).join('');
+  _alertFeed.forEach(a => a.read = true);
+  _alertUnread = 0;
+  updateAlertBadge();
+}
+
+function switchNotifTab(tab) {
+  _notifActiveTab = tab;
+  document.getElementById('ntab-gh')?.classList.toggle('active', tab === 'gh');
+  document.getElementById('ntab-alerts')?.classList.toggle('active', tab === 'alerts');
+  const ghEl    = document.getElementById('notif-list');
+  const alertEl = document.getElementById('alert-feed-list');
+  if (ghEl)    ghEl.style.display    = tab === 'gh'     ? 'block' : 'none';
+  if (alertEl) alertEl.style.display = tab === 'alerts' ? 'block' : 'none';
+  if (tab === 'alerts') renderAlertFeed();
+}
+
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
 let _notifOpen = false;
 async function toggleNotifPanel() {
   const panel = document.getElementById('notif-panel');
   _notifOpen = !_notifOpen;
   panel.style.display = _notifOpen ? 'block' : 'none';
-  if (_notifOpen) fetchNotifications();
+  if (_notifOpen) {
+    if (_notifActiveTab === 'gh') fetchNotifications();
+    else renderAlertFeed();
+  }
 }
 document.addEventListener('click', e => {
   if (_notifOpen && !document.getElementById('notif-wrap')?.contains(e.target)) {
@@ -3326,6 +3639,7 @@ async function silentRefresh() {
       document.getElementById('refresh-banner-msg').textContent = parts.join(' and ') + ' available';
       banner.style.display = 'flex';
     }
+    evaluateAlertRules(newCommitsBatch, newPRsBatch);
   } catch(_) {}
 }
 async function applyAutoRefresh() {
@@ -4010,6 +4324,7 @@ async function init() {
   renderCommitList(); renderPRList(); renderRightPanels();
   if (skel) { skel.style.opacity='0'; setTimeout(()=>{ skel.style.display='none'; skel.style.opacity='1'; },300); }
   startAutoRefresh();
+  initAlertTracking();
 }
 
 // ── PAGE LOAD ─────────────────────────────────────────────────────────────────
