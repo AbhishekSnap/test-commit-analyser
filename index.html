@@ -1591,6 +1591,7 @@ function selectRepo(repo) {
   issuesLoaded = false; ciCache.clear();
   prReviewAICache.clear(); prRiskCache.clear(); _onboardingCache = null;
   _stalertedPRs = new Set(); _lastKnownCommitSha = null; _lastKnownPRNums = new Set(); _lastKnownPRStates = new Map();
+  insAllCommits = null; insAllPRs = null;
   insDays = 0;
   // Reset insights filter UI to "All time"
   document.querySelectorAll('#view-insights .ftab').forEach((t,i,arr)=>t.classList.toggle('active',i===arr.length-1));
@@ -2316,6 +2317,9 @@ function renderTopContribs() {
 // ── INSIGHTS ─────────────────────────────────────────────────────────────────
 // ── INSIGHTS STATE ────────────────────────────────────────────────────────────
 let insDays = 0;
+let insAllCommits = null; // fetched independently — not tied to load-more
+let insAllPRs     = null;
+
 function setInsRange(d, el) {
   insDays = d;
   document.querySelectorAll('#view-insights .ftab').forEach(t=>t.classList.remove('active'));
@@ -2323,17 +2327,55 @@ function setInsRange(d, el) {
   renderInsights();
 }
 function insCommits() {
+  const src = insAllCommits || commits;
   const author = document.getElementById('ins-author')?.value || '';
   const cutoff = insDays ? new Date(Date.now() - insDays*86400000) : null;
-  return commits.filter(c => {
+  return src.filter(c => {
     if (cutoff && new Date(c.commit.author.date) < cutoff) return false;
     if (author && c.commit.author.name !== author) return false;
     return true;
   });
 }
 function insPRs() {
+  const src = insAllPRs || prs;
   const cutoff = insDays ? new Date(Date.now() - insDays*86400000) : null;
-  return prs.filter(p => !cutoff || new Date(p.created_at) >= cutoff);
+  return src.filter(p => !cutoff || new Date(p.created_at) >= cutoff);
+}
+
+async function loadInsightsData() {
+  if (insAllCommits !== null) { renderInsights(); return; } // already loaded
+  const view = document.getElementById('view-insights');
+  // show loading message over the charts area
+  const loader = document.createElement('div');
+  loader.id = 'ins-loader';
+  loader.style.cssText = 'position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:var(--bg);flex-direction:column;gap:10px';
+  loader.innerHTML = '<div class="ai-thinking"><div class="ai-thinking-msg" id="ins-loader-msg">Fetching full commit history…</div><div class="ai-dots" style="display:flex;gap:6px"><div class="ai-dot" style="animation-delay:0s"></div><div class="ai-dot" style="animation-delay:.2s"></div><div class="ai-dot" style="animation-delay:.4s"></div></div></div>';
+  view.style.position = 'relative';
+  view.appendChild(loader);
+  const msg = loader.querySelector('#ins-loader-msg');
+  try {
+    let ac = [], p2 = 1, moreC = true;
+    while (moreC) {
+      if (msg) msg.textContent = `Fetching commits (${ac.length} so far)…`;
+      const b = await ghFetch(`${API}/commits?per_page=100&page=${p2}`);
+      ac = ac.concat(b); moreC = b.length === 100; p2++;
+    }
+    let ap = [], p3 = 1, moreP = true;
+    while (moreP) {
+      if (msg) msg.textContent = `Fetching PRs (${ap.length} so far)…`;
+      const b = await ghFetch(`${API}/pulls?state=all&per_page=100&page=${p3}`);
+      ap = ap.concat(b); moreP = b.length === 100; p3++;
+    }
+    insAllCommits = ac;
+    insAllPRs     = ap;
+  } catch(e) {
+    // fallback to whatever is loaded
+    insAllCommits = commits;
+    insAllPRs     = prs;
+  } finally {
+    loader.remove();
+    renderInsights();
+  }
 }
 
 function renderInsights() {
@@ -2354,7 +2396,7 @@ function populateAuthorFilter() {
   const sel = document.getElementById('ins-author');
   if (!sel) return;
   const current = sel.value;
-  const authors = [...new Set(commits.map(c=>c.commit.author.name))].sort();
+  const authors = [...new Set((insAllCommits||commits).map(c=>c.commit.author.name))].sort();
   sel.innerHTML = '<option value="">All contributors</option>' +
     authors.map(a=>`<option value="${esc(a)}" ${a===current?'selected':''}>${esc(a)}</option>`).join('');
 }
@@ -2709,7 +2751,7 @@ function switchView(v) {
   const meta = VIEW_META[v]||{title:v,badge:''};
   document.getElementById('topbar-title').textContent = meta.title;
   document.getElementById('topbar-badge').textContent = meta.badge;
-  if(v==='insights') renderInsights();
+  if(v==='insights') loadInsightsData();
   if(v==='branches') renderBranchView();
   if(v==='issues')   { if(!issuesLoaded) fetchIssues(); else renderIssueList(); }
   if(v==='settings') { document.getElementById('api-key-inp').value=getKey()?'••••••••••••':''; updateCacheStats(); renderAlertRules(); updatePermBadge(); }
