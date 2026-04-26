@@ -564,6 +564,18 @@ text.axis{font-family:var(--mono);font-size:9px;fill:var(--text3)}
 .sev-high{background:var(--red-dim);color:var(--red)}
 .sev-med{background:var(--amber-dim);color:var(--amber)}
 .sev-low{background:var(--teal-dim);color:var(--teal)}
+/* AI Thinking Animation */
+.ai-thinking{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px 0}
+.ai-thinking-msg{font-size:12px;color:var(--text3);transition:opacity .3s}
+.ai-dots{display:flex;gap:5px}
+.ai-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:think-bounce 1.2s ease-in-out infinite}
+.ai-dot:nth-child(2){animation-delay:.2s}
+.ai-dot:nth-child(3){animation-delay:.4s}
+@keyframes think-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-6px);opacity:1}}
+/* Ask result cards */
+.ask-card{padding:12px 14px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;line-height:1.7;font-size:13px;color:var(--text2)}
+.ask-card:first-child{border-left:3px solid var(--gold);background:rgba(201,168,76,.06)}
+.ask-pr-pill{display:inline-block;background:rgba(201,168,76,.15);color:var(--gold);font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:10px;font-weight:600}
 </style>
 </head>
 <body>
@@ -3555,7 +3567,7 @@ async function reviewPRDiff(num) {
   const btn = document.getElementById('ai-review-btn-'+num);
   if (btn) { btn.disabled = true; btn.textContent = 'Reviewing…'; }
   wrap.style.display = 'block';
-  wrap.innerHTML = `<div class="ai-review-wrap"><div class="ai-review-hdr"><span class="ai-review-hdr-title">AI Code Review</span></div><div class="ai-review-body"><div class="skeleton" style="height:50px;border-radius:6px"></div><div class="skeleton" style="height:50px;border-radius:6px;margin-top:8px"></div></div></div>`;
+  const ivR = startThinking(wrap, ['Reading the diff…','Scanning changed files…','Identifying concerns…','Finalising review…']);
   try {
     const files = await fetchPRFiles(num);
     const pr = prs.find(p=>p.number===num);
@@ -3568,6 +3580,7 @@ async function reviewPRDiff(num) {
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:MODEL,max_tokens:900,messages:[{role:'user',content:prompt}]})
     });
+    stopThinking(ivR);
     if (!res.ok) throw new Error('Claude API error');
     const data = await res.json();
     let raw = data.content[0].text.trim();
@@ -3576,6 +3589,7 @@ async function reviewPRDiff(num) {
     prReviewAICache.set(num, result);
     renderAIReview(num, result);
   } catch(e) {
+    stopThinking(ivR);
     wrap.innerHTML = `<div class="ai-review-wrap"><div class="ai-review-hdr"><span class="ai-review-hdr-title">AI Code Review</span></div><div class="ai-review-body"><div style="color:var(--red);font-size:12px">Review failed: ${esc(e.message)}</div></div></div>`;
   }
   if (btn) { btn.disabled = false; btn.textContent = 'AI Review'; }
@@ -3621,7 +3635,7 @@ async function scorePRRisk(num) {
   const btn = document.getElementById('risk-score-btn-'+num);
   if (btn) { btn.disabled = true; }
   wrap.style.display = 'block';
-  wrap.innerHTML = `<div class="skeleton" style="height:80px;border-radius:8px"></div>`;
+  const ivRisk = startThinking(wrap, ['Analysing changed files…','Checking for tests…','Scoring risk dimensions…','Calculating impact…']);
   try {
     const files = await fetchPRFiles(num);
     const pr = prs.find(p=>p.number===num);
@@ -3633,6 +3647,7 @@ async function scorePRRisk(num) {
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:MODEL,max_tokens:350,messages:[{role:'user',content:prompt}]})
     });
+    stopThinking(ivRisk);
     if (!res.ok) throw new Error('Claude API error');
     const data = await res.json();
     let raw = data.content[0].text.trim();
@@ -3641,6 +3656,7 @@ async function scorePRRisk(num) {
     prRiskCache.set(num, result);
     renderRiskMeter(num, result);
   } catch(e) {
+    stopThinking(ivRisk);
     wrap.innerHTML = `<div style="color:var(--red);font-size:12px;padding:4px">Risk scoring failed: ${esc(e.message)}</div>`;
   }
   if (btn) { btn.disabled = false; }
@@ -3673,12 +3689,31 @@ function renderRiskMeter(num, r) {
     ${r.rationale?`<div style="font-size:11px;color:var(--text3);line-height:1.5;margin-top:8px;border-top:1px solid var(--border);padding-top:8px">${esc(r.rationale)}</div>`:''}`;
 }
 
+// ── AI Thinking helpers ───────────────────────────────────────────────────────
+function startThinking(el, messages) {
+  let i = 0;
+  el.innerHTML = `<div class="ai-thinking"><div class="ai-thinking-msg">${esc(messages[0])}</div><div class="ai-dots"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div></div>`;
+  const msgEl = el.querySelector('.ai-thinking-msg');
+  return setInterval(() => { i = (i + 1) % messages.length; if (msgEl) msgEl.textContent = messages[i]; }, 1800);
+}
+function stopThinking(iv) { clearInterval(iv); }
+function renderAskResult(text) {
+  const paras = text.split(/\n\n+/).filter(p => p.trim());
+  if (!paras.length) return `<div class="ask-card">${fmt(text)}</div>`;
+  return paras.map(p => {
+    const formatted = fmt(p).replace(/\bPR\s*#(\d+)\b/g, '<span class="ask-pr-pill">PR #$1</span>');
+    return `<div class="ask-card">${formatted}</div>`;
+  }).join('');
+}
+
 // ── Feature 5: Ask Your Repo ─────────────────────────────────────────────────
 function openAsk() {
   const key = getKey();
   if (!key) { switchView('settings'); toast('🔑','API Key Required','Add Anthropic key in Settings'); return; }
+  const resultEl = document.getElementById('ask-result');
+  if (resultEl) resultEl.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:12px;padding:20px 0">Press Enter to ask · ESC to close</div>';
   document.getElementById('ask-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('ask-input')?.focus(), 60);
+  setTimeout(()=>{ const inp=document.getElementById('ask-input'); if(inp){inp.value='';inp.focus();} }, 60);
 }
 function closeAsk() { document.getElementById('ask-overlay').classList.remove('open'); }
 function prefillAsk(q) { document.getElementById('ask-input').value=q; document.getElementById('ask-input').focus(); }
@@ -3689,7 +3724,7 @@ async function submitAskQuery() {
   const key = getKey();
   if (!key) { toast('🔑','API Key Required','Add key in Settings'); closeAsk(); return; }
   const resultEl = document.getElementById('ask-result');
-  resultEl.innerHTML = '<div style="color:var(--text3);font-size:12px">Thinking…</div>';
+  const iv = startThinking(resultEl, ['Scanning commit history…','Reading PR data…','Thinking…','Composing response…']);
   const recentCommits = commits.slice(0,30).map(c=>
     `[${detectType(c.commit.message)}] ${c.commit.message.split('\n')[0]} — ${c.commit.author.name} (${c.commit.author.date.slice(0,10)})`
   ).join('\n');
@@ -3697,17 +3732,19 @@ async function submitAskQuery() {
     `PR #${p.number}: "${p.title}" by ${p.user.login} — ${p.merged_at?'merged':p.state} (${p.created_at.slice(0,10)})`
   ).join('\n');
   const context = `Repository: ${currentRepo?.full_name||'unknown'}\nCommits loaded: ${commits.length}\nPRs loaded: ${prs.length}\n\nRecent commits:\n${recentCommits||'None'}\n\nPull requests:\n${prSummary||'None'}`;
-  const prompt = `You are an intelligent assistant for the repository "${currentRepo?.full_name||''}". Answer the user's question using only the data provided. Be concise, specific, and factual. No markdown headers. Use plain prose.\n\nRepository data:\n${context}\n\nQuestion: ${q}`;
+  const prompt = `You are an intelligent assistant for the repository "${currentRepo?.full_name||''}". Answer the user's question using only the data provided. Be concise, specific, and factual. No markdown headers. Use plain prose with paragraph breaks between distinct points.\n\nRepository data:\n${context}\n\nQuestion: ${q}`;
   try {
     const res = await fetch(CLAUDE, {
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:MODEL,max_tokens:600,messages:[{role:'user',content:prompt}]})
     });
+    stopThinking(iv);
     if (!res.ok) throw new Error('Claude API error');
     const data = await res.json();
-    resultEl.innerHTML = `<div style="line-height:1.75">${fmt(data.content[0].text.trim())}</div>`;
+    resultEl.innerHTML = renderAskResult(data.content[0].text.trim());
   } catch(e) {
+    stopThinking(iv);
     resultEl.innerHTML = `<div style="color:var(--red);font-size:12px">Failed: ${esc(e.message)}</div>`;
   }
 }
@@ -3726,7 +3763,7 @@ async function generateOnboarding() {
   const key = getKey();
   if (!key) return;
   const content = document.getElementById('onboarding-content');
-  content.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">Generating project overview…</div>';
+  const ivOb = startThinking(content, ['Reading commit history…','Detecting tech stack…','Analysing team patterns…','Building overview…']);
   const typeBreakdown = {};
   commits.forEach(c=>{ const t=detectType(c.commit.message); typeBreakdown[t]=(typeBreakdown[t]||0)+1; });
   const authors = [...new Set(commits.map(c=>c.commit.author.name))].join(', ');
@@ -3742,6 +3779,7 @@ async function generateOnboarding() {
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:MODEL,max_tokens:1000,messages:[{role:'user',content:prompt}]})
     });
+    stopThinking(ivOb);
     if (!res.ok) throw new Error('Claude API error');
     const data = await res.json();
     let raw = data.content[0].text.trim();
@@ -3749,6 +3787,7 @@ async function generateOnboarding() {
     _onboardingCache = JSON.parse(raw);
     renderOnboarding(_onboardingCache);
   } catch(e) {
+    stopThinking(ivOb);
     content.innerHTML = `<div style="color:var(--red);font-size:13px;text-align:center;padding:20px">Failed: ${esc(e.message)}</div>`;
   }
 }
@@ -3781,7 +3820,7 @@ async function analyzeStaleItems() {
   const btn   = document.getElementById('stale-btn');
   if (panel.style.display === 'block') { panel.style.display='none'; return; }
   panel.style.display = 'block';
-  body.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--text3)">Analysing branches and activity patterns…</div>';
+  const ivSt = startThinking(body, ['Scanning branches…','Checking PR activity…','Identifying stale items…','Generating recommendations…']);
   if (btn) btn.disabled = true;
   try {
     const defaultBranch = currentRepo?.default_branch||'main';
@@ -3799,12 +3838,14 @@ async function analyzeStaleItems() {
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:MODEL,max_tokens:800,messages:[{role:'user',content:prompt}]})
     });
+    stopThinking(ivSt);
     if (!res.ok) throw new Error('Claude API error');
     const data = await res.json();
     let raw = data.content[0].text.trim();
     if (raw.startsWith('```')) raw = raw.split('\n').slice(1,-1).join('\n').trim();
     renderStalePanel(JSON.parse(raw));
   } catch(e) {
+    stopThinking(ivSt);
     body.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--red)">Analysis failed: ${esc(e.message)}</div>`;
   }
   if (btn) btn.disabled = false;
