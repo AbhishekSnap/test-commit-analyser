@@ -2871,7 +2871,7 @@ async function generateReport() {
     return;
   }
 
-  status.textContent = 'Analysing commits and PRs...';
+  status.textContent = 'Preparing data...';
 
   const periodCommits = commits.filter(c => {
     const d = new Date(c.commit.author.date);
@@ -2912,23 +2912,30 @@ async function generateReport() {
     },0) / mergedWithTime.length);
   }
 
-  const prSummary = mergedPRs.slice(0,25).map(p =>
-    `PR "${p.title}" by ${p.user.login}, merged ${new Date(p.merged_at).toDateString()}`
+  // Pass data to Claude oldest-first so it can build a chronological timeline
+  const chronoCommits = [...periodCommits].reverse();
+  const commitSummary = chronoCommits.slice(0, 70).map(c =>
+    `${c.commit.author.date.slice(0,10)} | ${c.commit.author.name} | ${detectType(c.commit.message)} | ${c.commit.message.split('\n')[0].slice(0,90)}`
   ).join('\n');
-  const commitSummary = periodCommits.slice(0,60).map(c =>
-    `[${detectType(c.commit.message)}] ${c.commit.message.split('\n')[0]} — ${c.commit.author.name}`
+
+  const chronoPRs = [...periodPRs].sort((a,b) => new Date(a.created_at)-new Date(b.created_at));
+  const prSummary = chronoPRs.slice(0,30).map(p =>
+    `${p.created_at.slice(0,10)} | ${p.user.login} | PR #${p.number} | ${p.title}${p.merged_at?' | merged '+p.merged_at.slice(0,10):' | '+p.state}`
   ).join('\n');
-  const openPRSummary = openPRs.slice(0,10).map(p => `"${p.title}" by ${p.user.login}`).join('\n');
+
+  const openPRSummary = openPRs.slice(0,10).map(p =>
+    `PR #${p.number} "${p.title}" by ${p.user.login}, open since ${p.created_at.slice(0,10)}`
+  ).join('\n');
   const avgCycleStr = avgMergeHrs > 0 ? (avgMergeHrs < 24 ? avgMergeHrs + ' hours' : Math.round(avgMergeHrs/24) + ' days') : 'N/A';
 
-  const prompt = `You are writing a detailed professional project status report for a CLIENT MEETING. Audience: non-technical manager or client. No code, no jargon, no git terminology, no branch names, no commit hashes.\n\nProject: ${client}\nRepository: ${currentRepo?.full_name}\nPeriod: ${from} to ${to}\n\nKey metrics:\n- Total changes delivered: ${periodCommits.length}\n- Team members: ${authors.join(', ')}\n- Items delivered (merged PRs): ${mergedPRs.length}\n- Items in progress (open PRs): ${openPRs.length}\n- New features: ${features.length}\n- Bug fixes: ${bugfixes.length}\n- Average delivery cycle time: ${avgCycleStr}\n\nDelivered items (merged PRs):\n${prSummary||'None'}\n\nWork log (commit messages):\n${commitSummary||'None'}\n\nOpen / in progress:\n${openPRSummary||'None'}\n\nReturn a JSON object with EXACTLY these keys:\n\n"period_label": short string like "April 2026" or "Q1 2026"\n\n"executive_summary": array of 6-8 strings. CRITICAL RULE: every bullet MUST reference specific actual work from the data above — name the actual features built, modules added, problems fixed, or capabilities introduced. Do NOT write generic statements like "the team delivered X items" or "bugs were fixed". Instead write things like "A new inventory filtering module was introduced allowing users to search by multiple criteria simultaneously" or "The reporting dashboard was rebuilt with real-time data refresh, eliminating the need for manual page reloads". Draw directly from the PR titles and commit messages provided. Each bullet is 1-2 sentences. Cover: major new capabilities, significant improvements, important fixes, any architectural or module-level work, and team delivery pace.\n\n"key_metrics_narrative": 3-4 sentences interpreting the numbers in business terms — pace, efficiency, team productivity, delivery rate compared to scope.\n\n"features_shipped": array of objects, each with "title" (6-10 words, plain English describing the feature) and "description" (2-3 full sentences explaining what was built, how it works from the user perspective, and its business value). Draw from actual PR titles. Include up to 10 items.\n\n"issues_resolved": array of objects, each with "title" (short plain-English label for the issue) and "description" (1-2 sentences explaining what was broken, how it affected users, and how it was resolved). Include up to 8 items.\n\n"in_progress": array of objects, each with "title" and "description" (1-2 sentences on what is being worked on and expected outcome). Include up to 6 items.\n\n"recommendations": array of 3-4 strings, each a specific actionable recommendation for the team or client based on the data — delivery pace, review coverage, technical debt, priorities.\n\n"process_health": 3-4 sentences assessing delivery process health — review coverage, pace consistency, collaboration patterns, release cadence.\n\n"team_highlights": 3-4 sentences on team contributions — who drove delivery, standout effort, collaboration quality, contribution balance.\n\n"risk_summary": 2-3 sentences identifying risks visible in the data — open items accumulating, single-contributor dependency, review bottlenecks, slowing pace. If no significant risks, say the project looks healthy and explain why.\n\nRules: No em dashes, no bullet symbols, no markdown syntax, no technical jargon. Use plain commas and colons. Return ONLY valid JSON.`;
+  const prompt = `You are writing a professional project progress report for a client or manager. Audience: non-technical. No code, no jargon, no git terms, no branch names, no commit hashes.\n\nProject: ${client}\nRepository: ${currentRepo?.full_name}\nLanguage: ${currentRepo?.language||'Unknown'}\nDescription: ${currentRepo?.description||'Not provided'}\nPeriod: ${from} to ${to}\n\nMetrics:\n- Commits in period: ${periodCommits.length}\n- Contributors: ${authors.join(', ')}\n- Merged PRs: ${mergedPRs.length}\n- Open PRs: ${openPRs.length}\n- Features: ${features.length}, Bug fixes: ${bugfixes.length}\n- Avg merge cycle: ${avgCycleStr}\n\nCHRONOLOGICAL COMMIT LOG (oldest first): DATE | AUTHOR | TYPE | MESSAGE\n${commitSummary||'None'}\n\nCHRONOLOGICAL PR LOG (oldest first): DATE | AUTHOR | PR# | TITLE | STATUS\n${prSummary||'None'}\n\nOPEN / IN PROGRESS:\n${openPRSummary||'None'}\n\nReturn a JSON object with EXACTLY these keys:\n\n"period_label": short label like "April 2026" or "Q1 2026"\n\n"project_overview": object with:\n  "what": 2-3 sentences — what this project is, what it does, and who uses it. Infer from repo name, description, language, and commit/PR content. Be specific, not generic.\n  "domain": 1 word or short phrase — e.g. "E-commerce platform", "Data pipeline", "Developer tooling", "Mobile app"\n  "tech_note": 1 sentence — the technology stack in plain English, e.g. "Built with Python and Snowflake" or "A React web application backed by a Node.js API"\n\n"executive_summary": array of 5-7 strings. EVERY bullet must name specific actual work — features built, modules added, problems fixed. No generic statements. Draw directly from the PR titles and commit messages. Each bullet 1-2 sentences.\n\n"key_metrics_narrative": 3-4 sentences on delivery pace, efficiency, team productivity in business terms.\n\n"timeline": array of 10-15 significant milestone objects ordered chronologically (oldest first), each:\n  "date": "YYYY-MM-DD"\n  "type": one of: "feature" | "fix" | "improvement" | "milestone" | "infrastructure"\n  "title": 4-8 words, plain English, what was delivered\n  "description": 1-2 sentences explaining what changed and its impact\n  "author": contributor name from the log\nPick the most significant events — major features, notable fixes, architectural changes, and key milestones. Do NOT include trivial commits.\n\n"features_shipped": array of up to 10 objects, each:\n  "title": 6-10 words plain English\n  "description": 2-3 sentences — what was built, how it works, business value\n  "author": contributor name\n  "date": "YYYY-MM-DD"\n\n"issues_resolved": array of up to 8 objects, each:\n  "title": short plain-English label\n  "description": 1-2 sentences — what was broken, impact, how resolved\n  "author": contributor name\n  "date": "YYYY-MM-DD"\n\n"in_progress": array of up to 6 objects, each with "title", "description", "author"\n\n"team_highlights": 3-4 sentences on team contributions, standout effort, collaboration quality.\n\n"process_health": 3-4 sentences on review coverage, pace consistency, release cadence.\n\n"risk_summary": 2-3 sentences on risks visible in the data. If healthy, say why.\n\n"recommendations": array of 3-4 specific actionable strings.\n\nRules: No em dashes, no bullet symbols, no markdown, no jargon. Commas and colons only. Return ONLY valid JSON.`;
 
   try {
-    status.textContent = 'Claude is writing your report...';
+    status.textContent = 'Claude is reading the project history...';
     const res = await fetch(CLAUDE, {
       method: 'POST',
       headers: {'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({model:MODEL, max_tokens:4000, messages:[{role:'user',content:prompt}]})
+      body: JSON.stringify({model:MODEL, max_tokens:5500, messages:[{role:'user',content:prompt}]})
     });
     if (!res.ok) throw new Error('Claude API error ' + res.status);
     const data = await res.json();
@@ -2957,18 +2964,56 @@ async function generateReport() {
 
 function downloadReport(r, client, from, to, stats) {
   const {totalCommits, mergedCount, openCount, featureCount, bugCount, avgMergeHrs, authors, authorCounts, weekRows} = stats;
-  const now  = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  const fmtD = d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const now     = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const fmtD    = d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const fmtShort= d => new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   const avgMergeFmt = avgMergeHrs > 0 ? (avgMergeHrs < 24 ? avgMergeHrs+'h' : Math.round(avgMergeHrs/24)+'d') : 'N/A';
+  const initials= n => (n||'?').split(' ').map(w=>w[0]?.toUpperCase()||'').slice(0,2).join('');
 
-  const weekTableRows = weekRows.map(([wk, v]) => {
-    const label = new Date(wk).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    return `<tr><td>${label}</td><td>${v.commits}</td><td>${v.features}</td><td>${v.fixes}</td></tr>`;
-  }).join('');
+  const weekTableRows = weekRows.map(([wk, v]) =>
+    `<tr><td>${new Date(wk).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</td><td>${v.commits}</td><td>${v.features}</td><td>${v.fixes}</td></tr>`
+  ).join('');
 
   const authorRows = Object.entries(authorCounts).sort((a,b)=>b[1]-a[1]).map(([name,cnt]) =>
-    `<tr><td><div class="av-chip-sm">${(name||'?')[0].toUpperCase()}</div> ${esc(name)}</td><td>${cnt}</td></tr>`
+    `<tr><td><span class="av-chip-sm">${initials(name)}</span>${esc(name)}</td><td style="font-weight:600">${cnt}</td><td>
+      <div style="background:#e8e8e8;border-radius:4px;height:6px;width:100%"><div style="background:#1a1a2e;height:6px;border-radius:4px;width:${Math.min(100,Math.round(cnt/Math.max(...Object.values(authorCounts))*100))}%"></div></div>
+    </td></tr>`
   ).join('');
+
+  const typeColor = { feature:'#2e7d32', fix:'#c62828', improvement:'#1565c0', milestone:'#6a1b9a', infrastructure:'#37474f' };
+  const typeBg    = { feature:'#e8f5e9', fix:'#fce4ec', improvement:'#e3f2fd', milestone:'#f3e5f5', infrastructure:'#eceff1' };
+  const typeLabel = { feature:'Feature', fix:'Fix', improvement:'Improvement', milestone:'Milestone', infrastructure:'Infrastructure' };
+
+  const timelineHtml = (r.timeline||[]).map((t,i) => {
+    const tc = typeColor[t.type] || '#555';
+    const tb = typeBg[t.type]   || '#f5f5f5';
+    const tl = typeLabel[t.type]|| t.type;
+    return `<div class="tl-item">
+      <div class="tl-left">
+        <div class="tl-date">${t.date ? fmtShort(t.date) : ''}</div>
+        <div class="tl-author-chip" title="${esc(t.author||'')}">${initials(t.author||'?')}</div>
+      </div>
+      <div class="tl-connector"><div class="tl-dot" style="background:${tc}"></div>${i < (r.timeline||[]).length-1 ? '<div class="tl-line"></div>' : ''}</div>
+      <div class="tl-card">
+        <span class="tl-badge" style="background:${tb};color:${tc}">${esc(tl)}</span>
+        <div class="tl-title">${esc(t.title||'')}</div>
+        <div class="tl-desc">${esc(t.description||'')}</div>
+        ${t.author ? `<div class="tl-by">by ${esc(t.author)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const featureCard = (f, tag, tagColor, tagBg) => {
+    if (typeof f === 'string') return `<div class="fc"><div class="fc-left"><span class="fc-tag" style="color:${tagColor};background:${tagBg}">${tag}</span></div><div class="fc-body"><div class="fc-title">${esc(f)}</div></div></div>`;
+    return `<div class="fc">
+      <div class="fc-left"><span class="fc-tag" style="color:${tagColor};background:${tagBg}">${tag}</span></div>
+      <div class="fc-body">
+        <div class="fc-title">${esc(f.title||'')}</div>
+        <div class="fc-desc">${esc(f.description||'')}</div>
+        <div class="fc-meta">${f.author ? `<span class="fc-author">${initials(f.author)} ${esc(f.author)}</span>` : ''}${f.date ? `<span class="fc-date">${fmtShort(f.date)}</span>` : ''}</div>
+      </div>
+    </div>`;
+  };
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -2978,151 +3023,210 @@ function downloadReport(r, client, from, to, stats) {
 <title>${esc(client)} — Progress Report</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#1a1a2e;background:#fff;max-width:860px;margin:0 auto;padding:48px 40px;font-size:14px}
-  @media print{body{padding:20px}.print-btn{display:none!important}}
-  .header{border-bottom:3px solid #1a1a2e;padding-bottom:24px;margin-bottom:32px}
-  .badge{display:inline-block;background:#1a1a2e;color:#fff;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
-  h1{font-size:30px;font-weight:700;color:#1a1a2e;margin-bottom:6px;line-height:1.2}
-  .period{font-size:13px;color:#666;margin-bottom:3px}
-  .generated{font-size:11px;color:#aaa}
-  .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:28px 0}
-  @media(max-width:700px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
-  .kpi{background:#f5f5f7;border-radius:10px;padding:14px 10px;text-align:center}
-  .kpi-value{font-size:24px;font-weight:700;color:#1a1a2e;line-height:1}
-  .kpi-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.7px;margin-top:5px}
-  .section{margin-bottom:32px}
-  h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid #eee}
-  .exec{font-size:15px;line-height:1.75;color:#222;background:#fffbf0;border-left:4px solid #c9a84c;padding:18px 22px;border-radius:0 10px 10px 0}
-  .exec-bullets{padding-left:20px;display:flex;flex-direction:column;gap:10px}
-  .exec-bullets li{font-size:15px;line-height:1.65;color:#222}
-  .exec-bullets li::marker{color:#c9a84c;font-size:18px}
-  .narrative{font-size:14px;line-height:1.7;color:#444;background:#f5f5f7;padding:16px 20px;border-radius:8px}
-  .feature-grid{display:flex;flex-direction:column;gap:12px}
-  .feature-card{border:1px solid #e8e8e8;border-radius:10px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
-  .f-tag{background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;white-space:nowrap;margin-top:2px}
-  .f-tag.fix{background:#fce4ec;color:#c62828}
-  .f-tag.wip{background:#e3f2fd;color:#1565c0}
-  .f-title{font-weight:600;font-size:13px;color:#1a1a2e;margin-bottom:3px}
-  .f-desc{font-size:13px;color:#555;line-height:1.6}
-  ul.plain{padding-left:18px;display:flex;flex-direction:column;gap:8px}
-  ul.plain li{font-size:14px;line-height:1.6;color:#333}
-  ul.plain li::marker{color:#c9a84c}
-  .rec-list{display:flex;flex-direction:column;gap:10px}
-  .rec-card{background:#f0f4ff;border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.6;color:#1a237e;border-left:3px solid #3949ab}
+  body{font-family:'Segoe UI',system-ui,sans-serif;color:#1a1a2e;background:#fafafa;font-size:14px;line-height:1.6}
+  @media print{body{background:#fff}.print-btn{display:none!important}.page-wrap{box-shadow:none!important;border-radius:0!important}}
+  .page-wrap{max-width:880px;margin:0 auto;background:#fff;box-shadow:0 0 40px rgba(0,0,0,.08);border-radius:12px;overflow:hidden}
+  /* ── COVER ── */
+  .cover{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);padding:52px 52px 40px;color:#fff}
+  .cover-badge{display:inline-block;background:rgba(201,168,76,.2);border:1px solid rgba(201,168,76,.4);color:#c9a84c;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:20px}
+  .cover h1{font-size:32px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.2}
+  .cover-sub{font-size:13px;color:rgba(255,255,255,.55);margin-bottom:28px}
+  .cover-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:28px}
+  @media(max-width:700px){.cover-kpis{grid-template-columns:repeat(3,1fr)}}
+  .ckpi{background:rgba(255,255,255,.07);border-radius:10px;padding:14px 10px;text-align:center;border:1px solid rgba(255,255,255,.1)}
+  .ckpi-val{font-size:26px;font-weight:700;color:#fff;line-height:1}
+  .ckpi-lbl{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.7px;margin-top:5px}
+  /* ── BODY ── */
+  .body-wrap{padding:44px 52px}
+  .section{margin-bottom:40px}
+  h2{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;color:#aaa;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:8px}
+  h2 .h2-accent{width:3px;height:14px;border-radius:2px;background:#c9a84c;display:inline-block}
+  /* ── PROJECT OVERVIEW ── */
+  .project-card{background:#fffbf0;border:1px solid #f0e0a0;border-radius:12px;padding:22px 24px;margin-bottom:8px}
+  .project-domain{display:inline-block;background:#1a1a2e;color:#c9a84c;font-size:10px;font-weight:700;padding:3px 12px;border-radius:20px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px}
+  .project-what{font-size:15px;line-height:1.75;color:#222;margin-bottom:10px;font-weight:400}
+  .project-tech{font-size:12px;color:#888;font-style:italic}
+  /* ── EXEC SUMMARY ── */
+  .exec{background:#fffbf0;border-left:4px solid #c9a84c;padding:20px 24px;border-radius:0 12px 12px 0}
+  .exec ul{padding-left:18px;display:flex;flex-direction:column;gap:10px;list-style:disc}
+  .exec ul li{font-size:14px;line-height:1.7;color:#222}
+  .exec ul li::marker{color:#c9a84c;font-size:16px}
+  /* ── NARRATIVE ── */
+  .narrative{font-size:14px;line-height:1.75;color:#444;background:#f8f8f8;padding:18px 22px;border-radius:10px}
+  /* ── TIMELINE ── */
+  .timeline{display:flex;flex-direction:column;gap:0}
+  .tl-item{display:grid;grid-template-columns:110px 28px 1fr;gap:0 16px;align-items:start}
+  .tl-left{display:flex;flex-direction:column;align-items:flex-end;gap:6px;padding-top:4px;min-width:0}
+  .tl-date{font-size:10px;color:#aaa;text-align:right;line-height:1.3;white-space:nowrap}
+  .tl-author-chip{width:24px;height:24px;border-radius:50%;background:#1a1a2e;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto}
+  .tl-connector{display:flex;flex-direction:column;align-items:center;padding-top:6px}
+  .tl-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 2px currentColor;margin-top:2px}
+  .tl-line{width:2px;background:#e8e8e8;flex:1;margin-top:6px;min-height:32px}
+  .tl-card{background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px;margin-bottom:14px;transition:box-shadow .2s}
+  .tl-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase;display:inline-block;margin-bottom:7px}
+  .tl-title{font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:5px;line-height:1.4}
+  .tl-desc{font-size:12px;color:#666;line-height:1.6}
+  .tl-by{font-size:11px;color:#aaa;margin-top:6px}
+  /* ── FEATURE CARDS ── */
+  .fc{display:grid;grid-template-columns:68px 1fr;gap:14px;border:1px solid #eee;border-radius:10px;padding:14px 16px;margin-bottom:10px;align-items:start}
+  .fc-left{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .fc-tag{font-size:9px;font-weight:700;padding:3px 8px;border-radius:5px;letter-spacing:.5px;text-transform:uppercase;text-align:center;line-height:1.3}
+  .fc-title{font-weight:600;font-size:13px;color:#1a1a2e;margin-bottom:5px;line-height:1.4}
+  .fc-desc{font-size:12px;color:#555;line-height:1.65;margin-bottom:8px}
+  .fc-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .fc-author{font-size:10px;color:#888;display:flex;align-items:center;gap:5px}
+  .fc-date{font-size:10px;color:#bbb;font-style:italic}
+  /* ── TEAM ── */
+  .team-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:580px){.team-grid{grid-template-columns:1fr}}
+  .team-narrative{background:#f8f8f8;border-radius:10px;padding:18px 20px;font-size:14px;line-height:1.7;color:#333}
+  .av-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .av-chip{background:#1a1a2e;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  .av-chip-sm{background:#1a1a2e;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;vertical-align:middle;margin-right:5px}
   table.data{width:100%;border-collapse:collapse;font-size:13px}
-  table.data th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#999;padding:6px 10px;border-bottom:2px solid #eee}
-  table.data td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
+  table.data th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#aaa;padding:6px 10px;border-bottom:2px solid #f0f0f0}
+  table.data td{padding:9px 10px;border-bottom:1px solid #f5f5f5;color:#333;vertical-align:middle}
   table.data tr:last-child td{border-bottom:none}
-  .team-box{background:#f5f5f7;border-radius:10px;padding:16px 20px;font-size:14px;line-height:1.7;color:#333}
-  .av-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
-  .av-chip{background:#1a1a2e;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
-  .av-chip-sm{background:#1a1a2e;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;vertical-align:middle;margin-right:6px}
-  .risk-box{background:#fff8e1;border-left:4px solid #f9a825;border-radius:0 8px 8px 0;padding:14px 18px;font-size:14px;line-height:1.7;color:#555}
-  .two-col-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  @media(max-width:600px){.two-col-grid{grid-template-columns:1fr}}
-  .footer{margin-top:48px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#ccc;text-align:center}
-  .print-btn{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;border:none;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  /* ── WEEKLY TABLE ── */
+  .week-table-wrap{border:1px solid #eee;border-radius:10px;overflow:hidden}
+  /* ── RISK / REC ── */
+  .risk-box{background:#fffde7;border-left:4px solid #f9a825;border-radius:0 10px 10px 0;padding:16px 20px;font-size:14px;line-height:1.7;color:#555}
+  .rec-list{display:flex;flex-direction:column;gap:10px}
+  .rec-card{background:#f0f4ff;border-radius:8px;padding:13px 17px;font-size:13px;line-height:1.65;color:#1a237e;border-left:3px solid #3949ab;display:flex;gap:10px}
+  .rec-num{font-weight:700;font-size:15px;color:#3949ab;flex-shrink:0}
+  /* ── FOOTER ── */
+  .footer{margin-top:0;padding:24px 52px;border-top:1px solid #f0f0f0;background:#fafafa;font-size:11px;color:#ccc;display:flex;align-items:center;justify-content:space-between}
+  /* ── PRINT BTN ── */
+  .print-btn{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;border:none;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:100}
   .print-btn:hover{background:#2d2d50}
 </style>
 </head>
 <body>
 <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+<div class="page-wrap">
 
-<div class="header">
-  <div class="badge">Progress Report</div>
-  <h1>${esc(client)}</h1>
-  <div class="period">${fmtD(from)} to ${fmtD(to)}${r.period_label ? ' &nbsp;·&nbsp; '+esc(r.period_label) : ''}</div>
-  <div class="generated">Generated on ${now} via Git Digest &nbsp;·&nbsp; ${esc(currentRepo?.full_name||'')}</div>
-</div>
-
-<div class="kpi-row">
-  <div class="kpi"><div class="kpi-value">${totalCommits}</div><div class="kpi-label">Updates</div></div>
-  <div class="kpi"><div class="kpi-value">${mergedCount}</div><div class="kpi-label">Delivered</div></div>
-  <div class="kpi"><div class="kpi-value">${openCount}</div><div class="kpi-label">In Progress</div></div>
-  <div class="kpi"><div class="kpi-value">${featureCount}</div><div class="kpi-label">Features</div></div>
-  <div class="kpi"><div class="kpi-value">${bugCount}</div><div class="kpi-label">Fixes</div></div>
-  <div class="kpi"><div class="kpi-value">${avgMergeFmt}</div><div class="kpi-label">Avg Cycle</div></div>
-</div>
-
-<div class="section">
-  <h2>Executive Summary</h2>
-  <div class="exec">
-    ${Array.isArray(r.executive_summary)
-      ? `<ul class="exec-bullets">${r.executive_summary.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`
-      : esc(r.executive_summary||'')}
-  </div>
-</div>
-
-${r.key_metrics_narrative ? `<div class="section">
-  <h2>Delivery Overview</h2>
-  <div class="narrative">${esc(r.key_metrics_narrative)}</div>
-</div>` : ''}
-
-${r.features_shipped?.length ? `<div class="section">
-  <h2>Features and Improvements Delivered</h2>
-  <div class="feature-grid">${(r.features_shipped||[]).map(f => {
-    if (typeof f === 'string') return `<div class="feature-card"><span class="f-tag">New</span><div><div class="f-title">${esc(f)}</div></div></div>`;
-    return `<div class="feature-card"><span class="f-tag">New</span><div><div class="f-title">${esc(f.title||'')}</div><div class="f-desc">${esc(f.description||'')}</div></div></div>`;
-  }).join('')}</div>
-</div>` : ''}
-
-${r.issues_resolved?.length ? `<div class="section">
-  <h2>Issues Resolved</h2>
-  <div class="feature-grid">${(r.issues_resolved||[]).map(s => {
-    if (typeof s === 'string') return `<div class="feature-card"><span class="f-tag fix">Fixed</span><div class="f-desc">${esc(s)}</div></div>`;
-    return `<div class="feature-card"><span class="f-tag fix">Fixed</span><div><div class="f-title">${esc(s.title||'')}</div><div class="f-desc">${esc(s.description||'')}</div></div></div>`;
-  }).join('')}</div>
-</div>` : ''}
-
-${weekRows.length > 1 ? `<div class="section">
-  <h2>Weekly Activity</h2>
-  <table class="data">
-    <thead><tr><th>Week of</th><th>Total Changes</th><th>New Features</th><th>Bug Fixes</th></tr></thead>
-    <tbody>${weekTableRows}</tbody>
-  </table>
-</div>` : ''}
-
-<div class="two-col-grid section">
-  <div>
-    <h2>Team</h2>
-    <div class="team-box">
-      ${esc(r.team_highlights||'')}
-      <div class="av-row">${authors.map(a=>`<div class="av-chip" title="${esc(a)}">${(a||'?')[0].toUpperCase()}</div>`).join('')}</div>
+  <!-- COVER -->
+  <div class="cover">
+    <div class="cover-badge">Progress Report &nbsp;·&nbsp; ${esc(r.period_label||'')}</div>
+    <h1>${esc(client)}</h1>
+    <div class="cover-sub">${fmtD(from)} &nbsp;to&nbsp; ${fmtD(to)} &nbsp;·&nbsp; ${esc(currentRepo?.full_name||'')} &nbsp;·&nbsp; Generated ${now}</div>
+    <div class="cover-kpis">
+      <div class="ckpi"><div class="ckpi-val">${totalCommits}</div><div class="ckpi-lbl">Changes</div></div>
+      <div class="ckpi"><div class="ckpi-val">${mergedCount}</div><div class="ckpi-lbl">Delivered</div></div>
+      <div class="ckpi"><div class="ckpi-val">${openCount}</div><div class="ckpi-lbl">In Progress</div></div>
+      <div class="ckpi"><div class="ckpi-val">${featureCount}</div><div class="ckpi-lbl">Features</div></div>
+      <div class="ckpi"><div class="ckpi-val">${bugCount}</div><div class="ckpi-lbl">Fixes</div></div>
+      <div class="ckpi"><div class="ckpi-val">${avgMergeFmt}</div><div class="ckpi-lbl">Avg Cycle</div></div>
     </div>
   </div>
-  <div>
-    <h2>Contribution Breakdown</h2>
-    <table class="data">
-      <thead><tr><th>Team Member</th><th>Updates</th></tr></thead>
-      <tbody>${authorRows}</tbody>
-    </table>
+
+  <div class="body-wrap">
+
+    <!-- PROJECT OVERVIEW -->
+    ${r.project_overview ? `<div class="section">
+      <h2><span class="h2-accent"></span>About This Project</h2>
+      <div class="project-card">
+        ${r.project_overview.domain ? `<div class="project-domain">${esc(r.project_overview.domain)}</div>` : ''}
+        <div class="project-what">${esc(r.project_overview.what||'')}</div>
+        ${r.project_overview.tech_note ? `<div class="project-tech">${esc(r.project_overview.tech_note)}</div>` : ''}
+      </div>
+    </div>` : ''}
+
+    <!-- EXECUTIVE SUMMARY -->
+    <div class="section">
+      <h2><span class="h2-accent"></span>Executive Summary</h2>
+      <div class="exec">
+        ${Array.isArray(r.executive_summary)
+          ? `<ul>${r.executive_summary.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`
+          : `<p>${esc(r.executive_summary||'')}</p>`}
+      </div>
+    </div>
+
+    <!-- DELIVERY OVERVIEW -->
+    ${r.key_metrics_narrative ? `<div class="section">
+      <h2><span class="h2-accent"></span>Delivery Overview</h2>
+      <div class="narrative">${esc(r.key_metrics_narrative)}</div>
+    </div>` : ''}
+
+    <!-- TIMELINE -->
+    ${timelineHtml ? `<div class="section">
+      <h2><span class="h2-accent"></span>Project Timeline</h2>
+      <div class="timeline">${timelineHtml}</div>
+    </div>` : ''}
+
+    <!-- FEATURES SHIPPED -->
+    ${r.features_shipped?.length ? `<div class="section">
+      <h2><span class="h2-accent"></span>Features and Improvements Delivered</h2>
+      <div>${(r.features_shipped||[]).map(f=>featureCard(f,'Feature','#2e7d32','#e8f5e9')).join('')}</div>
+    </div>` : ''}
+
+    <!-- ISSUES RESOLVED -->
+    ${r.issues_resolved?.length ? `<div class="section">
+      <h2><span class="h2-accent"></span>Issues Resolved</h2>
+      <div>${(r.issues_resolved||[]).map(f=>featureCard(f,'Fixed','#c62828','#fce4ec')).join('')}</div>
+    </div>` : ''}
+
+    <!-- IN PROGRESS -->
+    ${r.in_progress?.length ? `<div class="section">
+      <h2><span class="h2-accent"></span>Currently In Progress</h2>
+      <div>${(r.in_progress||[]).map(f=>featureCard(f,'WIP','#1565c0','#e3f2fd')).join('')}</div>
+    </div>` : ''}
+
+    <!-- WEEKLY ACTIVITY -->
+    ${weekRows.length > 1 ? `<div class="section">
+      <h2><span class="h2-accent"></span>Weekly Activity</h2>
+      <div class="week-table-wrap">
+        <table class="data">
+          <thead><tr><th>Week of</th><th>Total Changes</th><th>New Features</th><th>Bug Fixes</th></tr></thead>
+          <tbody>${weekTableRows}</tbody>
+        </table>
+      </div>
+    </div>` : ''}
+
+    <!-- TEAM -->
+    <div class="section">
+      <h2><span class="h2-accent"></span>Team</h2>
+      <div class="team-grid">
+        <div>
+          <div class="team-narrative">
+            ${esc(r.team_highlights||'')}
+            <div class="av-chips">${authors.map(a=>`<div class="av-chip" title="${esc(a)}">${initials(a)}</div>`).join('')}</div>
+          </div>
+        </div>
+        <div>
+          <table class="data">
+            <thead><tr><th>Member</th><th>Changes</th><th style="width:80px">Share</th></tr></thead>
+            <tbody>${authorRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROCESS HEALTH -->
+    ${r.process_health ? `<div class="section">
+      <h2><span class="h2-accent"></span>Process Health</h2>
+      <div class="narrative">${esc(r.process_health)}</div>
+    </div>` : ''}
+
+    <!-- RISK -->
+    ${r.risk_summary ? `<div class="section">
+      <h2><span class="h2-accent"></span>Risk and Attention Areas</h2>
+      <div class="risk-box">${esc(r.risk_summary)}</div>
+    </div>` : ''}
+
+    <!-- RECOMMENDATIONS -->
+    ${r.recommendations?.length ? `<div class="section">
+      <h2><span class="h2-accent"></span>Recommendations</h2>
+      <div class="rec-list">${(r.recommendations||[]).map((s,i)=>`<div class="rec-card"><span class="rec-num">${i+1}</span><span>${esc(s)}</span></div>`).join('')}</div>
+    </div>` : ''}
+
+  </div><!-- /body-wrap -->
+
+  <div class="footer">
+    <span>Prepared with Git Digest</span>
+    <span>${esc(currentRepo?.full_name||'')} &nbsp;·&nbsp; ${now}</span>
   </div>
-</div>
-
-${r.process_health ? `<div class="section">
-  <h2>Process Health</h2>
-  <div class="narrative">${esc(r.process_health)}</div>
-</div>` : ''}
-
-${r.in_progress?.length ? `<div class="section">
-  <h2>Currently In Progress</h2>
-  <div class="feature-grid">${(r.in_progress||[]).map(s => {
-    if (typeof s === 'string') return `<div class="feature-card"><span class="f-tag wip">WIP</span><div class="f-desc">${esc(s)}</div></div>`;
-    return `<div class="feature-card"><span class="f-tag wip">WIP</span><div><div class="f-title">${esc(s.title||'')}</div><div class="f-desc">${esc(s.description||'')}</div></div></div>`;
-  }).join('')}</div>
-</div>` : ''}
-
-${r.recommendations?.length ? `<div class="section">
-  <h2>Recommendations</h2>
-  <div class="rec-list">${(r.recommendations||[]).map(s=>`<div class="rec-card">${esc(s)}</div>`).join('')}</div>
-</div>` : ''}
-
-${r.risk_summary ? `<div class="section">
-  <h2>Risk and Attention Areas</h2>
-  <div class="risk-box">${esc(r.risk_summary)}</div>
-</div>` : ''}
-
-<div class="footer">Prepared with Git Digest &nbsp;·&nbsp; ${now}</div>
+</div><!-- /page-wrap -->
 </body></html>`;
 
   const blob = new Blob([html], {type:'text/html'});
