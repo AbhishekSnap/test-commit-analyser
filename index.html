@@ -163,6 +163,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .risk-teal{color:var(--teal)}
 .risk-amber{color:var(--amber)}
 .risk-red{color:var(--red)}
+/* Enhanced AI card design */
+.abox-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.abox-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.abox.abox-plain{border-left:3px solid var(--gold)}
+.abox.abox-tech{border-left:3px solid var(--blue)}
+.abox.abox-review{border-left:3px solid var(--teal)}
+.abox.abox-qlt{border-left:3px solid var(--amber)}
+.plain-lead{font-size:13px;font-weight:600;color:var(--text);line-height:1.65;margin-bottom:5px}
+.plain-body{font-size:12px;color:var(--text2);line-height:1.65}
+.tech-file-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--blue);background:rgba(96,165,250,0.08);padding:3px 8px;border-radius:4px;margin:7px 0 3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tech-bullet{display:flex;gap:6px;font-size:12px;color:var(--text2);line-height:1.5;padding:2px 0}
+.tech-fn{font-weight:600;color:var(--text)}
+.risk-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 11px;border-radius:var(--r-pill);text-transform:uppercase;letter-spacing:.5px}
+.rb-high{background:var(--red-dim);color:var(--red)}
+.rb-med{background:var(--amber-dim);color:var(--amber)}
+.rb-low{background:var(--teal-dim);color:var(--teal)}
+.rb-reason{font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5}
+.qlt-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 11px;border-radius:var(--r-pill)}
+.qlt-good{background:rgba(74,222,128,0.1);color:var(--green)}
+.qlt-needs{background:var(--amber-dim);color:var(--amber)}
+.qlt-reason{font-size:12px;color:var(--text2);margin-top:5px;line-height:1.5}
 .chips{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .chip{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:var(--r-pill);background:var(--s3);color:var(--text2);border:1px solid var(--border)}
 .chip.add{color:#4ADE80}
@@ -1223,7 +1244,7 @@ const COLORS = ['#C9A84C','#2DD4BF','#F87171','#60A5FA','#FBB040','#A78BFA','#34
 // ── UTILS ────────────────────────────────────────────────────────────────────
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmt(txt) {
-  return esc(txt)
+  return esc(String(txt||'').replace(/—|–/g,'-').replace(/…/g,'...'))
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/\\n|\n/g,'<br>');
 }
@@ -1267,7 +1288,8 @@ function riskColor(r) { if(!r)return'risk-teal'; r=r.toLowerCase(); if(r.startsW
 // Split "Label: reason" or "Label — reason" into [label, reason]
 function splitLabel(s) {
   if (!s) return ['', ''];
-  const sep = s.includes(':') ? ':' : (s.includes('—') ? '—' : ':');
+  s = s.replace(/—|–/g, '-');
+  const sep = s.includes(':') ? ':' : '-';
   const idx = s.indexOf(sep);
   if (idx === -1) return [s.trim(), ''];
   return [s.slice(0, idx).trim(), s.slice(idx + sep.length).trim()];
@@ -1687,6 +1709,54 @@ async function analyzePR(num, pr) {
   return analysis;
 }
 
+// ── AI CARD RENDER HELPERS ────────────────────────────────────────────────────
+function renderPlainSummary(text) {
+  if (!text) return '';
+  const t = text.replace(/—|–/g, '-');
+  const m = t.match(/^([^.!?]*[.!?])\s+([\s\S]+)$/);
+  if (m && m[1].length < 200) {
+    return `<div class="plain-lead">${esc(m[1])}</div><div class="plain-body">${fmt(m[2])}</div>`;
+  }
+  return `<div class="plain-lead">${fmt(t)}</div>`;
+}
+
+function renderTechImpact(text) {
+  if (!text) return '';
+  const t = text.replace(/—|–/g, '-');
+  const lines = t.split('\n').filter(l => l.trim());
+  let html = '';
+  for (const line of lines) {
+    const s = line.trim();
+    if (!s) continue;
+    if (s.startsWith('- ')) {
+      const body = s.slice(2).trim();
+      const ci = body.indexOf(':');
+      if (ci > 0 && ci < 50) {
+        html += `<div class="tech-bullet"><span style="color:var(--blue);flex-shrink:0;margin-top:2px">·</span><span><span class="tech-fn">${esc(body.slice(0,ci))}</span><span style="color:var(--text3)">:</span> ${esc(body.slice(ci+1).trim())}</span></div>`;
+      } else {
+        html += `<div class="tech-bullet"><span style="color:var(--blue);flex-shrink:0;margin-top:2px">·</span>${esc(body)}</div>`;
+      }
+    } else {
+      html += `<div class="tech-file-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${esc(s)}</div>`;
+    }
+  }
+  return html || `<div class="plain-body">${fmt(t)}</div>`;
+}
+
+function renderRiskBadge(risk) {
+  const [label, reason] = splitLabel(risk || '');
+  const l = (label||'low').toLowerCase();
+  const cls = l.startsWith('high') ? 'rb-high' : l.startsWith('med') ? 'rb-med' : 'rb-low';
+  const icon = l.startsWith('high') ? '▲' : l.startsWith('med') ? '◆' : '●';
+  return `<span class="risk-badge ${cls}">${icon} ${esc(label||'Low')}</span>${reason ? `<div class="rb-reason">${esc(reason)}</div>` : ''}`;
+}
+
+function renderQualityBadge(quality) {
+  const [label, reason] = splitLabel(quality || '');
+  const good = label.startsWith('Good');
+  return `<span class="qlt-badge ${good ? 'qlt-good' : 'qlt-needs'}">${good ? '✓' : '!'} ${esc(label)}</span>${reason ? `<div class="qlt-reason">${esc(reason)}</div>` : ''}`;
+}
+
 // ── RENDERING: COMMITS ───────────────────────────────────────────────────────
 function getDisplayType(commit) {
   const cached = commitAnalysisCache.get(commit.sha);
@@ -1784,10 +1854,39 @@ function expandedCommitHtml(sha) {
   const showSugg = settings.showSuggested && sugg && sugg !== origMsg;
   return `<div class="commit-body">
     <div class="ag">
-      <div class="abox"><div class="albl">Plain English</div><div class="acontent">${fmt(cached.plain_summary)}</div></div>
-      <div class="abox"><div class="albl">Technical Summary</div><div class="acontent">${fmt(cached.technical_summary)}</div></div>
-      ${showSugg?`<div class="abox fw"><div class="albl">Suggested Message</div><div class="sugg-msg">${esc(sugg)}</div><div class="orig-msg">Original: ${esc(origMsg)}</div></div>`:''}
-      <div class="abox fw"><div class="albl">Risk Level</div><div class="acontent ${riskColor(cached.risk_level)}">${esc(cached.risk_level)}</div></div>
+      <div class="abox abox-plain">
+        <div class="abox-hdr">
+          <div class="abox-icon" style="background:var(--gold-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" width="11" height="11"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+          <div class="albl">Plain English</div>
+        </div>
+        <div class="acontent">${renderPlainSummary(cached.plain_summary)}</div>
+      </div>
+      <div class="abox abox-tech">
+        <div class="abox-hdr">
+          <div class="abox-icon" style="background:rgba(96,165,250,.1)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" width="11" height="11"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+          <div class="albl">Technical Summary</div>
+        </div>
+        <div class="acontent">${renderTechImpact(cached.technical_summary)}</div>
+      </div>
+      ${showSugg?`<div class="abox fw" style="border-left:3px solid var(--gold)">
+        <div class="abox-hdr">
+          <div class="abox-icon" style="background:var(--gold-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" width="11" height="11"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+          <div class="albl">Suggested Message</div>
+        </div>
+        <div class="sugg-msg">${esc(sugg)}</div><div class="orig-msg">Original: ${esc(origMsg)}</div>
+      </div>`:''}
+      <div class="abox fw">
+        <div style="display:flex;gap:24px;flex-wrap:wrap">
+          <div style="flex:1;min-width:160px">
+            <div class="abox-hdr"><div class="abox-icon" style="background:var(--red-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" width="11" height="11"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div><div class="albl">Risk Level</div></div>
+            ${renderRiskBadge(cached.risk_level)}
+          </div>
+          <div style="flex:1;min-width:160px">
+            <div class="abox-hdr"><div class="abox-icon" style="background:rgba(74,222,128,.1)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg></div><div class="albl">Quality</div></div>
+            ${renderQualityBadge(cached.quality)}
+          </div>
+        </div>
+      </div>
     </div>
     ${files.length?`<div class="chips">
       <span class="chip">${files.length} file${files.length!==1?'s':''} changed</span>
@@ -1896,13 +1995,35 @@ function expandedPRHtml(p) {
       <div style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${esc(p.body.slice(0,800))}${p.body.length>800?'…':''}</div>
     </div>`:''}
     <div class="ag">
-      <div class="abox"><div class="albl">What This PR Does</div><div class="acontent">${fmt(cached.summary)}</div></div>
-      <div class="abox"><div class="albl">Technical Impact</div><div class="acontent">${fmt(cached.technical_impact)}</div></div>
-      <div class="abox"><div class="albl">Review Status</div>
+      <div class="abox abox-plain">
+        <div class="abox-hdr">
+          <div class="abox-icon" style="background:var(--gold-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" width="11" height="11"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+          <div class="albl">What This PR Does</div>
+        </div>
+        <div class="acontent">${renderPlainSummary(cached.summary)}</div>
+      </div>
+      <div class="abox abox-tech">
+        <div class="abox-hdr">
+          <div class="abox-icon" style="background:rgba(96,165,250,.1)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" width="11" height="11"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+          <div class="albl">Technical Impact</div>
+        </div>
+        <div class="acontent">${renderTechImpact(cached.technical_impact)}</div>
+      </div>
+      <div class="abox abox-review">
+        <div class="abox-hdr">
+          <div class="abox-icon" style="background:var(--teal-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" width="11" height="11"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+          <div class="albl">Review Status</div>
+        </div>
         <span class="rev-badge ${revCls}">${esc(splitLabel(sentiment)[0])}</span>
         <div class="acontent" style="margin-top:6px">${esc(splitLabel(sentiment)[1])}</div>
       </div>
-      <div class="abox"><div class="albl">PR Quality</div><div class="acontent">${esc(cached.quality)}</div></div>
+      <div class="abox abox-qlt">
+        <div class="abox-hdr">
+          <div class="abox-icon" style="background:var(--amber-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" width="11" height="11"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="albl">PR Quality</div>
+        </div>
+        ${renderQualityBadge(cached.quality)}
+      </div>
     </div>
     ${files.length?`<div style="margin-top:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
